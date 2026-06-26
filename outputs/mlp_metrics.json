@@ -1,0 +1,72 @@
+{
+  "dataset": {
+    "num_images": 300,
+    "image_shape": [
+      64,
+      64
+    ],
+    "scene_counts": {
+      "l_corner": 100,
+      "t_junction": 100,
+      "x_junction": 100
+    },
+    "num_patches": 7500,
+    "positive_patches": 1500,
+    "negative_patches": 6000,
+    "feature_names": [
+      "ix_center",
+      "iy_center",
+      "ix2_sum",
+      "iy2_sum",
+      "ixiy_sum",
+      "grad_mag_center",
+      "harris_response",
+      "patch_mean",
+      "patch_std"
+    ]
+  },
+  "mlp_validation": {
+    "precision": 0.9122340425531915,
+    "recall": 0.9146666666666666,
+    "f1": 0.9134487350199734,
+    "loss_final": 0.02028072150578895,
+    "probability_min": 2.2080526510930613e-29,
+    "probability_max": 1.0
+  },
+  "overlay_image": {
+    "image_id": 0,
+    "scene_type": "l_corner",
+    "gt_points": [
+      [
+        32.65978240966797,
+        31.914011001586914
+      ]
+    ],
+    "harris": {
+      "precision": 0.2,
+      "recall": 1.0,
+      "f1": 0.33333333333333337,
+      "true_positives": 1,
+      "false_positives": 4,
+      "false_negatives": 0
+    },
+    "fast": {
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.18181818181818182,
+      "true_positives": 1,
+      "false_positives": 9,
+      "false_negatives": 0
+    },
+    "mlp": {
+      "precision": 0.14285714285714285,
+      "recall": 1.0,
+      "f1": 0.25,
+      "true_positives": 1,
+      "false_positives": 6,
+      "false_negatives": 0
+    },
+    "mlp_probability_threshold": 0.5,
+    "mlp_probability_max": 1.0
+  }
+}

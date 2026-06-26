@@ -52,7 +52,7 @@ def main() -> None:
             label_path = label_dir / f"{stem}.npz"
 
             image_u8 = np.uint8(np.clip(sample.image, 0.0, 1.0) * 255)
-            Image.fromarray(image_u8, mode="L").save(image_path)
+            Image.fromarray(image_u8).save(image_path)
             save_sample_npz(label_path, sample, config)
 
             manifest.write(

@@ -1,0 +1,8 @@
+numpy
+pillow
+matplotlib
+scikit-learn
+
+# Optional accelerators/integrations:
+# opencv-python enables native cv2 Harris/FAST calls.
+# torch enables SyntheticKeypointDataset.

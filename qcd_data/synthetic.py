@@ -5,9 +5,16 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 import numpy as np
-import torch
 from PIL import Image, ImageDraw, ImageFilter
-from torch.utils.data import Dataset
+
+try:
+    import torch
+    from torch.utils.data import Dataset
+except ImportError:  # Torch is optional for data generation and sklearn baselines.
+    torch = None
+
+    class Dataset:  # type: ignore[no-redef]
+        pass
 
 
 CLASS_TO_ID = {
@@ -193,6 +200,8 @@ class SyntheticKeypointDataset(Dataset):
         seed: int = 0,
         transform: Callable[[SyntheticSample], object] | None = None,
     ) -> None:
+        if torch is None:
+            raise ImportError("SyntheticKeypointDataset requires torch. Use generate_sample for NumPy-only workflows.")
         self.length = int(length)
         self.config = config or SyntheticKeypointConfig()
         self.seed = int(seed)
@@ -396,7 +405,7 @@ def _draw_lines(
 
 
 def _smooth_render(image: np.ndarray, config: SyntheticKeypointConfig) -> np.ndarray:
-    pil = Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255), mode="L")
+    pil = Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255))
     pil = pil.resize((config.width * config.antialias_scale, config.height * config.antialias_scale), Image.Resampling.BICUBIC)
     return _downsample(pil, config.shape)
 
@@ -413,7 +422,7 @@ def _augment_image(image: np.ndarray, rng: np.random.Generator, config: Syntheti
 
     if rng.random() < config.blur_probability:
         radius = rng.uniform(*config.blur_radius)
-        pil = Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255), mode="L")
+        pil = Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255))
         image = np.asarray(pil.filter(ImageFilter.GaussianBlur(radius=radius)), dtype=np.float32) / 255.0
 
     return np.clip(image, 0.0, 1.0)
