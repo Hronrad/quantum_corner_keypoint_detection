@@ -1,0 +1,36 @@
+{
+  "image_size": 64,
+  "image_width": null,
+  "image_height": null,
+  "min_margin": 16,
+  "line_width": [
+    2,
+    5
+  ],
+  "antialias_scale": 4,
+  "gaussian_sigma": 2.0,
+  "positive_radius": 3.0,
+  "negative_radius": 10.0,
+  "patch_size": 9,
+  "patches_per_image": 96,
+  "positive_fraction": 0.5,
+  "noise_std": [
+    0.0,
+    0.06
+  ],
+  "blur_probability": 0.25,
+  "blur_radius": [
+    0.2,
+    0.8
+  ],
+  "contrast_range": [
+    0.75,
+    1.25
+  ],
+  "brightness_range": [
+    -0.08,
+    0.08
+  ],
+  "resolved_width": 64,
+  "resolved_height": 64
+}
