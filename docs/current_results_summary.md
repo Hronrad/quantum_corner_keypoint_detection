@@ -140,3 +140,94 @@ QNN training curve：
 2. QNN 消融实验：无纠缠、线性纠缠、环形纠缠、不同层数。
 3. 尝试更多训练样本或更长 QNN 训练。
 4. demo 整合与更清晰的汇报页面。
+
+## 7. QNN 提升实验
+
+参考 `QNN Training Improvement Suggestions.pdf` 后，已完成一组短期提升实验：
+
+- 输入从 5 维扩展到 8 维：`[Ix, Iy, Ix2, Iy2, IxIy, lambda1, lambda2, R]`。
+- QNN readout 从 Z-only 扩展到 Z+ZZ neighbor readout。
+- 优先测试 `L=1,2,3`，不再默认认为更深一定更好。
+- 对比 `none / linear / ring` 纠缠结构。
+- 加入 trainable input scaling。
+- 采用 small-angle initialization。
+- 增加一个 more-data improved QNN run。
+- 完成 clean / Gaussian / blur / salt-and-pepper 噪声鲁棒性实验。
+- 生成 HTML demo 汇报页。
+
+### 7.1 改进主模型
+
+当前改进主模型：
+
+```text
+8-D features
+L = 2
+encoding = RyRz
+entanglement = ring
+readout = Z + neighbor ZZ
+trainable input scaling = true
+train samples = 220
+test samples = 100
+```
+
+| Model | Precision | Recall | F1 | PR-AUC |
+| --- | ---: | ---: | ---: | ---: |
+| MLP, same 8-D features | 0.9406 | 0.9500 | 0.9453 | 0.9756 |
+| Improved QNN | 0.6538 | 0.8500 | 0.7391 | 0.7909 |
+
+相比 Day 2 第一轮 QNN（F1 0.5946，PR-AUC 0.4672），改进 QNN 的 test F1 和 PR-AUC 都明显提升。但 MLP 仍然是 clean 条件下更强的 baseline。
+
+### 7.2 QNN 消融结果
+
+![QNN ablation results](../outputs/qnn_ablation_results.png)
+
+消融覆盖：
+
+- `L=1,2,3`
+- `none / linear / ring` entanglement
+- `Z` vs `Z+ZZ` readout
+- trainable input scaling
+- more-data improved run
+
+当前观察：
+
+- 小子集下结果存在波动，不能过度解读单个配置。
+- `Z+ZZ` 与 trainable input scaling 对部分配置有明显帮助。
+- 更深的 `L=3` 并不稳定地优于 `L=1/2`，符合改进建议中“不要盲目加深”的判断。
+
+### 7.3 噪声鲁棒性结果
+
+![Noise robustness](../outputs/noise_robustness.png)
+
+| Case | MLP F1 | QNN F1 |
+| --- | ---: | ---: |
+| clean | 0.9167 | 0.7059 |
+| gaussian_0.04 | 0.9200 | 0.7547 |
+| gaussian_0.08 | 0.8364 | 0.6909 |
+| blur_0.9 | 0.6667 | 0.3125 |
+| saltpepper_0.03 | 0.6286 | 0.6230 |
+
+当前观察：
+
+- 高斯噪声下 QNN 没有明显崩溃，F1 下降相对平滑。
+- blur 对 QNN 影响最大。
+- salt-and-pepper 下 MLP 与 QNN F1 接近，值得后续进一步放大样本验证。
+
+### 7.4 Demo 汇报页
+
+HTML demo 页面：
+
+- `outputs/qnn_improvement_demo.html`
+
+配套文件：
+
+- `outputs/qnn_ablation_results.csv`
+- `outputs/qnn_ablation_results.json`
+- `outputs/qnn_ablation_results.png`
+- `outputs/noise_robustness_results.csv`
+- `outputs/noise_robustness_results.json`
+- `outputs/noise_robustness.png`
+- `outputs/improved_qnn_metrics.json`
+- `outputs/improved_qnn_training_curve.png`
+- `outputs/improved_comparison_overlay.png`
+- `outputs/qnn_improvement_summary.md`

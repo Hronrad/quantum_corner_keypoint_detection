@@ -38,7 +38,8 @@ class DataReuploadingQNN(nn.Module):
         encoding_type: ``"ry"`` 或 ``"ryrz"``。``"ryrz"`` 会对每个特征依次施加
             ``RY(phi_j)`` 和 ``RZ(phi_j)``。
         entanglement: ``"none"``, ``"linear"`` 或 ``"ring"``。
-        readout: ``"single"`` 只使用 ``<Z0>``；``"all"`` 使用所有 qubit 的 ``<Zj>``。
+        readout: ``"single"`` 只使用 ``<Z0>``；``"all"`` 使用所有 qubit 的 ``<Zj>``；
+            ``"all_zz"`` 同时使用所有 ``<Zj>`` 和相邻 qubit 的 ``<ZjZk>``。
         shots: ``None`` 表示 exact expectation；整数表示有限 shots 模拟。
 
     Input:
@@ -52,7 +53,7 @@ class DataReuploadingQNN(nn.Module):
 
     VALID_ENCODINGS = {"ry", "ryrz"}
     VALID_ENTANGLEMENTS = {"none", "linear", "ring"}
-    VALID_READOUTS = {"single", "all"}
+    VALID_READOUTS = {"single", "all", "all_zz"}
 
     def __init__(
         self,
@@ -62,6 +63,8 @@ class DataReuploadingQNN(nn.Module):
         entanglement: str = "ring",
         readout: str = "all",
         shots: Optional[int] = None,
+        trainable_input_scaling: bool = False,
+        init_scale: float = 0.01,
     ) -> None:
         super().__init__()
         self.n_qubits = int(n_qubits)
@@ -70,14 +73,22 @@ class DataReuploadingQNN(nn.Module):
         self.entanglement = entanglement
         self.readout = readout
         self.shots = shots
+        self.trainable_input_scaling = bool(trainable_input_scaling)
+        self.init_scale = float(init_scale)
 
         self._validate_config()
 
         # theta[l, j, :] 对应第 l 层第 j 个 qubit 上的 RZ-RY-RZ 三个可训练角度。
         # 小随机初始化可以避免所有 qubit 在初始状态下完全对称。
-        self.theta = nn.Parameter(0.01 * torch.randn(self.n_layers, self.n_qubits, 3))
+        self.theta = nn.Parameter(self.init_scale * torch.randn(self.n_layers, self.n_qubits, 3))
+        if self.trainable_input_scaling:
+            self.input_scale_y = nn.Parameter(torch.ones(self.n_qubits))
+            self.input_scale_z = nn.Parameter(torch.ones(self.n_qubits))
+        else:
+            self.register_buffer("input_scale_y", torch.ones(self.n_qubits))
+            self.register_buffer("input_scale_z", torch.ones(self.n_qubits))
 
-        readout_dim = 1 if self.readout == "single" else self.n_qubits
+        readout_dim = self._readout_dim()
         self.readout_weights = nn.Parameter(torch.zeros(readout_dim))
         self.readout_bias = nn.Parameter(torch.zeros(()))
 
@@ -106,7 +117,7 @@ class DataReuploadingQNN(nn.Module):
         # 后续如果样本量很大，可以再做 vectorized/batched QNode 优化。
         z_values = []
         for sample_phi in Phi:
-            expvals = self._qnode(sample_phi, self.theta)
+            expvals = self._qnode(sample_phi, self.theta, self.input_scale_y, self.input_scale_z)
             if self.readout == "single":
                 z = torch.stack([expvals]) if expvals.ndim == 0 else expvals.reshape(1)
             else:
@@ -135,6 +146,8 @@ class DataReuploadingQNN(nn.Module):
             "entanglement": self.entanglement,
             "readout": self.readout,
             "shots": self.shots,
+            "trainable_input_scaling": self.trainable_input_scaling,
+            "init_scale": self.init_scale,
         }
 
     def _build_qnode(self):
@@ -149,21 +162,28 @@ class DataReuploadingQNN(nn.Module):
         """
 
         @qml.qnode(self.device, interface="torch", diff_method="best")
-        def circuit(phi: torch.Tensor, theta: torch.Tensor):
+        def circuit(phi: torch.Tensor, theta: torch.Tensor, scale_y: torch.Tensor, scale_z: torch.Tensor):
             # Data re-uploading：同一个输入 phi 在每一层重新作为门参数施加。
             # 这里没有重置量子态，也没有重新制备 |0...0>；每层都作用在当前态上。
             for layer in range(self.n_layers):
-                self._apply_encoding(phi)
+                self._apply_encoding(phi, scale_y, scale_z)
                 self._apply_variational_layer(theta[layer])
                 self._apply_entanglement()
 
             if self.readout == "single":
                 return qml.expval(qml.PauliZ(0))
+            if self.readout == "all_zz":
+                z_terms = [qml.expval(qml.PauliZ(wire)) for wire in range(self.n_qubits)]
+                zz_terms = [
+                    qml.expval(qml.PauliZ(a) @ qml.PauliZ(b))
+                    for a, b in self._neighbor_edges()
+                ]
+                return tuple(z_terms + zz_terms)
             return tuple(qml.expval(qml.PauliZ(wire)) for wire in range(self.n_qubits))
 
         return circuit
 
-    def _apply_encoding(self, phi: torch.Tensor) -> None:
+    def _apply_encoding(self, phi: torch.Tensor, scale_y: torch.Tensor, scale_z: torch.Tensor) -> None:
         """Angle encoding 层。
 
         ``ry``: 对每个 qubit 施加 ``RY(phi_j)``。
@@ -171,9 +191,9 @@ class DataReuploadingQNN(nn.Module):
         """
 
         for wire in range(self.n_qubits):
-            qml.RY(phi[wire], wires=wire)
+            qml.RY(scale_y[wire] * phi[wire], wires=wire)
             if self.encoding_type == "ryrz":
-                qml.RZ(phi[wire], wires=wire)
+                qml.RZ(scale_z[wire] * phi[wire], wires=wire)
 
     def _apply_variational_layer(self, layer_theta: torch.Tensor) -> None:
         """可训练单比特旋转层，对应每个 qubit 的 RZ-RY-RZ。"""
@@ -200,6 +220,22 @@ class DataReuploadingQNN(nn.Module):
         if self.entanglement == "ring":
             return [(j, (j + 1) % self.n_qubits) for j in range(self.n_qubits)]
         return []
+
+    def _neighbor_edges(self) -> list[tuple[int, int]]:
+        """返回 readout 使用的相邻 ZZ 测量边。"""
+
+        if self.n_qubits == 1:
+            return []
+        return [(j, j + 1) for j in range(self.n_qubits - 1)] + [(self.n_qubits - 1, 0)]
+
+    def _readout_dim(self) -> int:
+        """返回当前 readout 的经典线性头输入维度。"""
+
+        if self.readout == "single":
+            return 1
+        if self.readout == "all_zz":
+            return self.n_qubits + len(self._neighbor_edges())
+        return self.n_qubits
 
     def _validate_config(self) -> None:
         """检查模型配置是否合法，尽早暴露拼写或维度错误。"""

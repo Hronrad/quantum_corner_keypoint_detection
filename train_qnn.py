@@ -375,8 +375,10 @@ def main() -> None:
     parser.add_argument("--layers", type=int, default=3)
     parser.add_argument("--encoding", choices=["ry", "ryrz"], default="ryrz")
     parser.add_argument("--entanglement", choices=["none", "linear", "ring"], default="ring")
-    parser.add_argument("--readout", choices=["single", "all"], default="all")
+    parser.add_argument("--readout", choices=["single", "all", "all_zz"], default="all")
     parser.add_argument("--shots", type=int, default=None)
+    parser.add_argument("--trainable-input-scaling", action="store_true")
+    parser.add_argument("--init-scale", type=float, default=0.01)
     parser.add_argument("--feature-indices", default=None, help="Comma-separated feature columns, e.g. 0,1,4.")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     args = parser.parse_args()
@@ -390,6 +392,8 @@ def main() -> None:
         entanglement=args.entanglement,
         readout=args.readout,
         shots=args.shots,
+        trainable_input_scaling=args.trainable_input_scaling,
+        init_scale=args.init_scale,
     )
     train_config = TrainConfig(
         learning_rate=args.learning_rate,

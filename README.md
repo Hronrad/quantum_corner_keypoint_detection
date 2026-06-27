@@ -585,3 +585,43 @@ QNN     same features  0.5238     0.6875  0.5946  0.4672
 
 ![第二天 QNN 对比图](outputs/day2_comparison_overlay.png)
 ![第二天 QNN 检测图](outputs/day2_qnn_overlay.png)
+
+## QNN 提升实验
+
+进一步提升实验入口：
+
+```bash
+python scripts/run_improvement_experiments.py --seed 37
+```
+
+该实验加入：
+
+- 8 维输入特征：`[Ix, Iy, Ix2, Iy2, IxIy, lambda1, lambda2, R]`
+- QNN `Z+ZZ` readout
+- trainable input scaling
+- small-angle initialization
+- `L=1/2/3` 与 `none/linear/ring` 消融
+- Gaussian / blur / salt-and-pepper 噪声鲁棒性测试
+- HTML demo 页面
+
+主要产物：
+
+- `outputs/qnn_ablation_results.csv`
+- `outputs/qnn_ablation_results.png`
+- `outputs/noise_robustness_results.csv`
+- `outputs/noise_robustness.png`
+- `outputs/improved_qnn_metrics.json`
+- `outputs/improved_qnn_training_curve.png`
+- `outputs/improved_comparison_overlay.png`
+- `outputs/qnn_improvement_demo.html`
+
+当前改进主模型结果：
+
+```text
+Model                  Precision  Recall  F1      PR-AUC
+MLP, same 8-D features 0.9406     0.9500  0.9453  0.9756
+Improved QNN           0.6538     0.8500  0.7391  0.7909
+```
+
+![QNN 消融结果](outputs/qnn_ablation_results.png)
+![噪声鲁棒性](outputs/noise_robustness.png)

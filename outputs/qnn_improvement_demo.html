@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>QNN Improvement Demo</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #17202a; }
+    h1, h2 { margin-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+    img { max-width: 100%; border: 1px solid #d8dee9; }
+    table { border-collapse: collapse; width: 100%; margin: 14px 0 24px; }
+    th, td { border: 1px solid #d8dee9; padding: 8px 10px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    .note { background: #f5f7fb; padding: 12px 14px; border-left: 4px solid #4978bc; }
+  </style>
+</head>
+<body>
+  <h1>QNN Improvement Demo</h1>
+  <p class="note">当前目标不是宣称量子优势，而是展示 QNN 结构改进、噪声鲁棒性与消融分析。MLP 仍是 clean 条件下最强 baseline。</p>
+
+  <h2>主模型结果</h2>
+  <table>
+    <tr><th>Model</th><th>Precision</th><th>Recall</th><th>F1</th><th>PR-AUC</th></tr>
+    <tr><td>MLP, same 8-D features</td><td>0.9406</td><td>0.9500</td><td>0.9453</td><td>0.9756</td></tr>
+    <tr><td>Improved QNN</td><td>0.6538</td><td>0.8500</td><td>0.7391</td><td>0.7909</td></tr>
+  </table>
+
+  <div class="grid">
+    <section><h2>QNN 消融</h2><img src="qnn_ablation_results.png" /></section>
+    <section><h2>噪声鲁棒性</h2><img src="noise_robustness.png" /></section>
+    <section><h2>Overlay 对比</h2><img src="improved_comparison_overlay.png" /></section>
+    <section><h2>训练曲线</h2><img src="improved_qnn_training_curve.png" /></section>
+  </div>
+
+  <h2>结论</h2>
+  <ul>
+    <li>8-D 特征、Z+ZZ readout、trainable input scaling 已接入并完成训练。</li>
+    <li>消融覆盖 L=1/2/3、none/linear/ring entanglement、Z vs Z+ZZ readout。</li>
+    <li>噪声实验覆盖 clean、Gaussian、blur、salt-and-pepper。</li>
+    <li>后续重点应放在 hard negative mining、soft labels、layerwise training 与更多训练样本。</li>
+  </ul>
+</body>
+</html>

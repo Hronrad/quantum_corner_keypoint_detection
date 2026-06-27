@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 
 DEFAULT_FEATURE_NAMES: List[str] = ["Ix", "Iy", "lambda1", "lambda2", "R"]
+EXTENDED_FEATURE_NAMES: List[str] = ["Ix", "Iy", "Ix2", "Iy2", "IxIy", "lambda1", "lambda2", "R"]
 
 
 @dataclass
@@ -33,6 +34,8 @@ class QNNConfig:
     entanglement: str = "ring"
     readout: str = "all"
     shots: Optional[int] = None
+    trainable_input_scaling: bool = False
+    init_scale: float = 0.01
 
     def to_dict(self) -> Dict[str, Any]:
         """返回可 JSON 序列化的配置字典。"""
