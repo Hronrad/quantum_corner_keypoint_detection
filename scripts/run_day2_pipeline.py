@@ -209,7 +209,7 @@ def train_mlp_baseline(payload: dict[str, np.ndarray], outputs_dir: Path, seed: 
     )
     (outputs_dir / "day2_mlp_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     loss_curve = mlp.named_steps["mlpclassifier"].loss_curve_
-    save_loss_curve(loss_curve, outputs_dir / "day2_mlp_training_curve.png", "Day 2 MLP training loss")
+    save_loss_curve(loss_curve, outputs_dir / "day2_mlp_training_curve.png", "MLP training loss")
     return mlp, metrics
 
 
@@ -473,7 +473,7 @@ def save_qnn_training_curve(history: list[dict], path: Path) -> None:
     ax.plot(epochs, [row["val_loss"] for row in history], label="val")
     ax.set_xlabel("Epoch")
     ax.set_ylabel("BCEWithLogitsLoss")
-    ax.set_title("Day 2 QNN training loss")
+    ax.set_title("QNN training loss")
     ax.grid(alpha=0.25)
     ax.legend()
     fig.tight_layout()
@@ -540,7 +540,7 @@ def save_pipeline_flow(path: Path) -> None:
         ax.text(x, 0.55, label, ha="center", va="center", bbox={"boxstyle": "round,pad=0.35", "fc": "#eef5ff", "ec": "#4777aa"})
         if index < len(labels) - 1:
             ax.annotate("", xy=(xs[index + 1] - 0.08, 0.55), xytext=(x + 0.08, 0.55), arrowprops={"arrowstyle": "->", "lw": 1.4})
-    ax.set_title("Day 2 task flow")
+    ax.set_title("Task flow")
     fig.tight_layout()
     fig.savefig(path, dpi=180)
     plt.close(fig)

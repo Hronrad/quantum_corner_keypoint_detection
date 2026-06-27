@@ -4,40 +4,82 @@
   <meta charset="utf-8" />
   <title>QNN Improvement Demo</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #17202a; }
-    h1, h2 { margin-bottom: 8px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #17202a; line-height: 1.55; }
+    h1, h2 { margin: 0 0 8px; }
+    section { margin: 0 0 26px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
     img { max-width: 100%; border: 1px solid #d8dee9; }
     table { border-collapse: collapse; width: 100%; margin: 14px 0 24px; }
     th, td { border: 1px solid #d8dee9; padding: 8px 10px; text-align: right; }
     th:first-child, td:first-child { text-align: left; }
     .note { background: #f5f7fb; padding: 12px 14px; border-left: 4px solid #4978bc; }
+    .wide { grid-column: 1 / -1; }
   </style>
 </head>
 <body>
   <h1>QNN Improvement Demo</h1>
-  <p class="note">当前目标不是宣称量子优势，而是展示 QNN 结构改进、噪声鲁棒性与消融分析。MLP 仍是 clean 条件下最强 baseline。</p>
+  <p class="note">当前目标不是宣称量子优势，而是展示 QNN 结构改进、噪声鲁棒性与消融分析。MLP 仍是 clean 条件下最强 baseline；salt-and-pepper 全量验证中 QNN 的固定阈值 F1 更高，但 PR-AUC 仍低于 MLP。</p>
 
-  <h2>主模型结果</h2>
-  <table>
-    <tr><th>Model</th><th>Precision</th><th>Recall</th><th>F1</th><th>PR-AUC</th></tr>
-    <tr><td>MLP, same 8-D features</td><td>0.9406</td><td>0.9500</td><td>0.9453</td><td>0.9756</td></tr>
-    <tr><td>Improved QNN</td><td>0.6538</td><td>0.8500</td><td>0.7391</td><td>0.7909</td></tr>
-  </table>
+  <section>
+    <h2>指标解释</h2>
+    <table>
+      <tr><th>Metric</th><th>Meaning</th></tr>
+      <tr><td>Precision</td><td>预测为 keypoint 的点或 patch 中有多少是真的，低值表示误检多。</td></tr>
+      <tr><td>Recall</td><td>GT keypoint 中有多少被找到了，低值表示漏检多。</td></tr>
+      <tr><td>F1</td><td>Precision 与 Recall 的调和平均，当前阶段作为主指标。</td></tr>
+      <tr><td>PR-AUC</td><td>跨阈值的 Precision-Recall 曲线面积，反映概率或响应分数的整体排序能力。</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>测试集覆盖</h2>
+    <table>
+      <tr><th>Dataset</th><th>Feature Dim</th><th>Test Images</th><th>Scene Types</th><th>Test Patches</th></tr>
+      <tr><td>Canonical</td><td>5</td><td>60</td><td>L-corner 20, T-junction 20, X-junction 20</td><td>1500</td></tr>
+      <tr><td>Extended</td><td>8</td><td>60</td><td>L-corner 20, T-junction 20, X-junction 20</td><td>1500</td></tr>
+    </table>
+    <p>当前任务是 binary keypoint detection，不是 L / T / X 多类别分类；T-junction 与 X-junction 已进入测试，但输出仍是 keypoint probability。</p>
+  </section>
+
+  <section>
+    <h2>主模型结果</h2>
+    <table>
+      <tr><th>Model</th><th>Precision</th><th>Recall</th><th>F1</th><th>PR-AUC</th></tr>
+      <tr><td>MLP, same 8-D features</td><td>0.9406</td><td>0.9500</td><td>0.9453</td><td>0.9756</td></tr>
+      <tr><td>Improved QNN</td><td>0.6538</td><td>0.8500</td><td>0.7391</td><td>0.7909</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>ORB 结果解释</h2>
+    <p>ORB 主要面向自然图像中的可重复纹理点，检测依赖 FAST，描述依赖旋转 BRIEF。本任务的图像是稀疏几何线条，边缘和抗锯齿像素会产生大量额外响应；评估只把几何交点算作 GT，因此 ORB 召回高但 false positive 极多，Precision 与 F1 很低。</p>
+  </section>
 
   <div class="grid">
     <section><h2>QNN 消融</h2><img src="qnn_ablation_results.png" /></section>
     <section><h2>噪声鲁棒性</h2><img src="noise_robustness.png" /></section>
     <section><h2>Overlay 对比</h2><img src="improved_comparison_overlay.png" /></section>
     <section><h2>训练曲线</h2><img src="improved_qnn_training_curve.png" /></section>
+    <section class="wide"><h2>Salt-and-pepper 全测试集验证</h2><img src="saltpepper_full_validation.png" /></section>
   </div>
 
-  <h2>结论</h2>
-  <ul>
-    <li>8-D 特征、Z+ZZ readout、trainable input scaling 已接入并完成训练。</li>
-    <li>消融覆盖 L=1/2/3、none/linear/ring entanglement、Z vs Z+ZZ readout。</li>
-    <li>噪声实验覆盖 clean、Gaussian、blur、salt-and-pepper。</li>
-    <li>后续重点应放在 hard negative mining、soft labels、layerwise training 与更多训练样本。</li>
-  </ul>
+  <section>
+    <h2>Salt-and-pepper 全量验证</h2>
+    <table>
+      <tr><th>Method</th><th>Samples</th><th>Positives</th><th>Precision</th><th>Recall</th><th>F1</th><th>PR-AUC</th></tr>
+      <tr><td>MLP</td><td>1500</td><td>300</td><td>0.4708</td><td>0.9667</td><td>0.6332</td><td>0.6832</td></tr>
+      <tr><td>QNN</td><td>1500</td><td>300</td><td>0.5699</td><td>0.8833</td><td>0.6928</td><td>0.5172</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>结论</h2>
+    <ul>
+      <li>8-D 特征、Z+ZZ readout、trainable input scaling 已接入并完成训练。</li>
+      <li>消融覆盖 L=1/2/3、none/linear/ring entanglement、Z vs Z+ZZ readout。</li>
+      <li>噪声实验覆盖 clean、Gaussian、blur、salt-and-pepper，并补充了 salt-and-pepper 全测试集验证。</li>
+      <li>后续重点应放在多随机种子验证、更多 QNN 训练样本、hard negative mining 与 keypoint type classification。</li>
+    </ul>
+  </section>
 </body>
 </html>

@@ -2,40 +2,54 @@
 
 更新时间：2026-06-27
 
-## 1. 项目当前状态
+## 1. 总体目标与当前状态
 
-本项目已经完成从合成角点/交点数据到经典 baseline、MLP baseline、QNN 第一轮训练与可视化的最小闭环。
+本项目目标是把角点/交点关键点检测任务打通为可复现实验链路：合成几何图像、采样 patch、提取结构张量特征、训练 MLP 与 QNN、评估 classical baseline，并生成 overlay 与汇报页面。
 
-当前 pipeline：
+当前已经完成：
 
-```text
-合成几何图像
--> ground-truth keypoints
--> patch 采样
--> 5-D structure tensor features
--> Harris / FAST / ORB image baselines
--> MLP baseline
--> QNN baseline
--> 指标表与 overlay 可视化
-```
+1. 合成 L-corner、T-junction、X-junction 三类几何样本。
+2. patch-level 二分类数据集：keypoint / non-keypoint。
+3. Harris、FAST、ORB 经典图像检测 baseline。
+4. MLP baseline。
+5. QNN 第一轮训练、消融实验、噪声鲁棒性实验与 demo 页面。
 
-Day 2 统一特征接口采用计划书推荐的 5 维输入：
+当前最重要的判断：
 
-```text
-[Ix, Iy, lambda1, lambda2, R]
-```
+- clean 条件下 MLP 仍是最强 baseline。
+- QNN 已经完成端到端接入，改进后性能明显高于第一轮 QNN，但尚不能宣称优于 MLP。
+- ORB 在本任务上召回高、误检极多，因此 Precision 与 F1 很低。
+- salt-and-pepper 全测试集验证显示 QNN 的固定阈值 F1 略高于 MLP，但 PR-AUC 仍低，说明排序能力还不稳定。
 
-其中 MLP 与 QNN 使用同一份 `data/feature_dataset.npz`。当前数据划分为：
+## 2. 评估指标解释
 
-| Split | Shape | Feature Dim |
-| --- | ---: | ---: |
-| `X_train` | `(4500, 5)` | 5 |
-| `X_val` | `(1500, 5)` | 5 |
-| `X_test` | `(1500, 5)` | 5 |
+本项目同时报告点检测指标和 patch 分类指标。对 Harris / FAST / ORB，先把检测点与 GT keypoint 按距离容忍阈值匹配，再统计 TP / FP / FN。对 MLP / QNN，则在 patch-level 使用概率阈值 0.5 得到二分类预测。
 
-## 2. Day 1 经典 Baseline
+| Metric | 含义 | 本项目中的解释 |
+| --- | --- | --- |
+| Precision | `TP / (TP + FP)` | 检出的点或 patch 中有多少是真的 keypoint。低 Precision 表示误检多。 |
+| Recall | `TP / (TP + FN)` | GT keypoint 中有多少被找到了。低 Recall 表示漏检多。 |
+| F1 | Precision 与 Recall 的调和平均 | 同时惩罚误检和漏检，适合作为当前阶段的主指标。 |
+| PR-AUC | Precision-Recall 曲线下面积 | 衡量不同阈值下概率或响应分数的整体排序能力；正负样本不均衡时比 ROC-AUC 更有参考价值。 |
+| ROC-AUC | TPR-FPR 曲线下面积 | 只在部分 QNN 训练日志中记录，用于辅助观察排序能力。 |
+| Loss | 训练目标函数值 | MLP / QNN 训练是否收敛的过程指标，不直接等价于检测质量。 |
 
-Day 1 主要完成合成数据、patch 采样、9 维早期特征、Harris / FAST / ORB / MLP 的第一版展示。
+注意：F1 是某个阈值下的表现，PR-AUC 是跨阈值的整体排序表现。因此可能出现“F1 接近或更好，但 PR-AUC 更低”的情况。
+
+## 3. 测试集覆盖判断
+
+当前测试集不是只有普通 L-corner。两个数据集的 held-out test split 都按图像划分，避免同一图像的 patch 泄漏到训练和测试中。
+
+| Dataset | Feature Dim | Test Images | Test Scene Types | Test Patches |
+| --- | ---: | ---: | --- | ---: |
+| `feature_dataset.npz` | 5 | 60 | L-corner 20, T-junction 20, X-junction 20 | 1500 |
+| `feature_dataset_extended.npz` | 8 | 60 | L-corner 20, T-junction 20, X-junction 20 | 1500 |
+
+需要澄清的是，当前模型任务仍是 binary keypoint detection，而不是多类别 keypoint type classification。也就是说，T-junction 和 X-junction 已经作为 keypoint 场景参与测试，但模型不输出“这是 L / T / X 哪一类”，只输出该 patch 是否包含关键点。
+
+## 4. 6 月 26 日：经典 baseline 与早期 MLP
+
+第一阶段完成合成数据、patch 采样、早期特征与四个 baseline 的 overlay 展示。
 
 | Method | Precision | Recall | F1 |
 | --- | ---: | ---: | ---: |
@@ -44,124 +58,74 @@ Day 1 主要完成合成数据、patch 采样、9 维早期特征、Harris / FAS
 | ORB | 0.0296 | 1.0000 | 0.0576 |
 | MLP | 0.1219 | 0.9067 | 0.2149 |
 
-![Day 1 overlay comparison](../outputs/day1_overlay_comparison.png)
+![Baseline overlay comparison](../outputs/day1_overlay_comparison.png)
 
-![Day 1 baseline metrics](../outputs/baseline_metrics.png)
+![Baseline metrics](../outputs/baseline_metrics.png)
 
-## 3. Day 2 统一特征与 QNN 结果
+ORB 效果差的主要原因：
 
-Day 2 将特征接口固定为 5 维 structure tensor 特征，并打通 MLP 与 QNN 在同一输入上的训练、测试和可视化。
+- ORB 本质上面向自然图像中的可重复局部纹理点，检测阶段依赖 FAST，描述阶段依赖旋转 BRIEF；而本任务是稀疏二值/灰度几何线条，纹理非常少。
+- 合成线条存在大量高对比边缘、端点、抗锯齿像素和交界附近响应，ORB 容易在边缘邻域产生大量额外 keypoints。
+- 当前评估只关心 GT 几何交点，ORB 检出的其他稳定边缘点都会被算作 false positive，因此 Recall 可达 1.0，但 Precision 和 F1 很低。
+- ORB 的 descriptor 匹配优势在这里没有发挥，因为当前任务不是跨图匹配，而是单图关键点定位。
+
+## 5. 6 月 27 日：统一 5 维特征接口与 QNN 第一轮
+
+按照 QNN 计划书，统一输入特征为：
+
+```text
+[Ix, Iy, lambda1, lambda2, R]
+```
+
+MLP 与 QNN 使用同一份归一化前特征矩阵，训练阶段只在 train split 上拟合 normalizer。
+
+| Split | Shape | Feature Dim |
+| --- | ---: | ---: |
+| `X_train` | `(4500, 5)` | 5 |
+| `X_val` | `(1500, 5)` | 5 |
+| `X_test` | `(1500, 5)` | 5 |
+
+第一轮 clean 结果：
 
 | Method | Input | Precision | Recall | F1 | PR-AUC |
 | --- | --- | ---: | ---: | ---: | ---: |
 | Harris | image | 0.1652 | 0.9500 | 0.2815 | 0.8953 |
 | FAST | image | 0.0789 | 0.7833 | 0.1433 | 0.7925 |
 | ORB | image | 0.0412 | 1.0000 | 0.0791 | 0.7759 |
-| MLP | same features | 0.9347 | 0.9067 | 0.9205 | 0.9749 |
-| QNN | same features | 0.5238 | 0.6875 | 0.5946 | 0.4672 |
+| MLP | same 5-D features | 0.9347 | 0.9067 | 0.9205 | 0.9749 |
+| QNN | same 5-D features | 0.5238 | 0.6875 | 0.5946 | 0.4672 |
 
-说明：
+![Task flow](../outputs/day2_pipeline_flow.png)
 
-- Harris / FAST / ORB 是 image-level 检测 baseline，并通过候选 patch 分数估计 PR-AUC。
-- MLP / QNN 使用相同 5 维输入特征。
-- QNN 为第一轮 clean dataset 训练结果，使用固定 stratified 子集以控制 PennyLane 模拟耗时。
-- 当前结果显示 MLP 明显强于第一轮 QNN；QNN 已完成接入与可视化，但暂不能声称性能优于经典 MLP。
+![Data samples](../outputs/day2_data_samples.png)
 
-## 4. 展示图
+![GT and detector comparison](../outputs/day2_comparison_overlay.png)
 
-### 4.1 Day 2 流程图
+![QNN detections](../outputs/day2_qnn_overlay.png)
 
-![Day 2 pipeline flow](../outputs/day2_pipeline_flow.png)
+阶段结论：
 
-### 4.2 数据样例图
+- 5 维接口已经满足 MLP / QNN 共用输入的要求。
+- MLP 在 clean test 上表现稳定，是当前最强学习型 baseline。
+- 第一轮 QNN 的链路完整，但性能不足，主要价值是证明 `features -> QNN -> probability -> loss -> metrics -> overlay` 已打通。
 
-![Day 2 data samples](../outputs/day2_data_samples.png)
+## 6. 提升实验：扩展特征、QNN 消融与更长训练
 
-### 4.3 GT / Harris / FAST / ORB / MLP / QNN 对比图
-
-![Day 2 comparison overlay](../outputs/day2_comparison_overlay.png)
-
-### 4.4 QNN 检测结果图
-
-![Day 2 QNN overlay](../outputs/day2_qnn_overlay.png)
-
-### 4.5 训练曲线
-
-MLP training curve：
-
-![Day 2 MLP training curve](../outputs/day2_mlp_training_curve.png)
-
-QNN training curve：
-
-![Day 2 QNN training curve](../outputs/day2_qnn_training_curve.png)
-
-## 5. 当前产物清单
-
-关键数据与指标文件：
-
-- `data/feature_dataset.npz`
-- `outputs/day2_result_table.csv`
-- `outputs/day2_mlp_metrics.json`
-- `outputs/day2_qnn_metrics.json`
-- `outputs/day2_qnn_normalizer.npz`
-
-关键展示文件：
-
-- `outputs/day2_pipeline_flow.png`
-- `outputs/day2_data_samples.png`
-- `outputs/day2_comparison_overlay.png`
-- `outputs/day2_qnn_overlay.png`
-- `outputs/day2_mlp_training_curve.png`
-- `outputs/day2_qnn_training_curve.png`
-- `outputs/day2_progress_summary.md`
-
-## 6. 阶段性结论
-
-已完成：
-
-1. 合成角点/交点数据。
-2. patch 采样。
-3. Harris / FAST / ORB classical baseline。
-4. 5 维 structure tensor feature extraction。
-5. MLP baseline，clean test F1 达到 0.9205。
-6. QNN 接入同一特征接口。
-7. QNN 第一轮 clean dataset 训练、测试与 overlay 可视化。
-8. 第一版模型对比表与介绍材料图。
-
-当前观察：
-
-- 传统图像检测器召回较高，但误检较多，因此 F1 偏低。
-- MLP 在相同 5 维特征上表现最强，是当前主要 classical learning baseline。
-- QNN 已实现完整链路，但第一轮训练结果仍弱于 MLP，需要进一步做超参数、特征组和纠缠结构消融。
-
-下一步：
-
-1. 噪声鲁棒性实验。
-2. QNN 消融实验：无纠缠、线性纠缠、环形纠缠、不同层数。
-3. 尝试更多训练样本或更长 QNN 训练。
-4. demo 整合与更清晰的汇报页面。
-
-## 7. QNN 提升实验
-
-参考 `QNN Training Improvement Suggestions.pdf` 后，已完成一组短期提升实验：
+参考 QNN 计划书和进一步提升建议后，完成了以下实验：
 
 - 输入从 5 维扩展到 8 维：`[Ix, Iy, Ix2, Iy2, IxIy, lambda1, lambda2, R]`。
-- QNN readout 从 Z-only 扩展到 Z+ZZ neighbor readout。
-- 优先测试 `L=1,2,3`，不再默认认为更深一定更好。
-- 对比 `none / linear / ring` 纠缠结构。
+- QNN readout 从 Z-only 扩展到 Z + neighbor ZZ。
+- 对比无纠缠、线性纠缠、环形纠缠。
+- 对比 1 / 2 / 3 层 QNN。
 - 加入 trainable input scaling。
-- 采用 small-angle initialization。
-- 增加一个 more-data improved QNN run。
-- 完成 clean / Gaussian / blur / salt-and-pepper 噪声鲁棒性实验。
-- 生成 HTML demo 汇报页。
+- 使用 small-angle initialization。
+- 增加 more-data improved run。
 
-### 7.1 改进主模型
-
-当前改进主模型：
+改进主模型配置：
 
 ```text
-8-D features
-L = 2
+features = 8-D
+layers = 2
 encoding = RyRz
 entanglement = ring
 readout = Z + neighbor ZZ
@@ -175,29 +139,18 @@ test samples = 100
 | MLP, same 8-D features | 0.9406 | 0.9500 | 0.9453 | 0.9756 |
 | Improved QNN | 0.6538 | 0.8500 | 0.7391 | 0.7909 |
 
-相比 Day 2 第一轮 QNN（F1 0.5946，PR-AUC 0.4672），改进 QNN 的 test F1 和 PR-AUC 都明显提升。但 MLP 仍然是 clean 条件下更强的 baseline。
-
-### 7.2 QNN 消融结果
-
 ![QNN ablation results](../outputs/qnn_ablation_results.png)
 
-消融覆盖：
+消融观察：
 
-- `L=1,2,3`
-- `none / linear / ring` entanglement
-- `Z` vs `Z+ZZ` readout
-- trainable input scaling
-- more-data improved run
+- 改进 QNN 相比第一轮 QNN 有明显提升：F1 从 0.5946 到 0.7391，PR-AUC 从 0.4672 到 0.7909。
+- 小样本消融波动较大，不能只凭单个配置断言结构优劣。
+- `Z + ZZ` readout 与 trainable input scaling 对部分配置有明显帮助。
+- 更深不必然更好；当前 L=3 在小子集上可达到较高 F1，但 more-data 主模型选择 L=2 更稳妥。
 
-当前观察：
+## 7. 噪声鲁棒性与 salt-and-pepper 放大验证
 
-- 小子集下结果存在波动，不能过度解读单个配置。
-- `Z+ZZ` 与 trainable input scaling 对部分配置有明显帮助。
-- 更深的 `L=3` 并不稳定地优于 `L=1/2`，符合改进建议中“不要盲目加深”的判断。
-
-### 7.3 噪声鲁棒性结果
-
-![Noise robustness](../outputs/noise_robustness.png)
+噪声实验覆盖 clean、Gaussian、blur、salt-and-pepper。第一轮鲁棒性实验为了控制 QNN 推理耗时，在 120 个 held-out patch 上评估 MLP / QNN。
 
 | Case | MLP F1 | QNN F1 |
 | --- | ---: | ---: |
@@ -207,27 +160,55 @@ test samples = 100
 | blur_0.9 | 0.6667 | 0.3125 |
 | saltpepper_0.03 | 0.6286 | 0.6230 |
 
-当前观察：
+![Noise robustness](../outputs/noise_robustness.png)
 
-- 高斯噪声下 QNN 没有明显崩溃，F1 下降相对平滑。
-- blur 对 QNN 影响最大。
-- salt-and-pepper 下 MLP 与 QNN F1 接近，值得后续进一步放大样本验证。
+由于 salt-and-pepper 下 MLP 与 QNN 的 F1 很接近，已补充完整 1500 个 held-out patch 的放大验证：
 
-### 7.4 Demo 汇报页
+| Method | Samples | Positives | Precision | Recall | F1 | PR-AUC |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MLP | 1500 | 300 | 0.4708 | 0.9667 | 0.6332 | 0.6832 |
+| QNN | 1500 | 300 | 0.5699 | 0.8833 | 0.6928 | 0.5172 |
 
-HTML demo 页面：
+![Salt-and-pepper full validation](../outputs/saltpepper_full_validation.png)
+
+放大验证结论：
+
+- 在固定阈值 0.5 下，QNN 的 F1 高于 MLP，主要来自更高 Precision。
+- MLP 的 PR-AUC 明显高于 QNN，说明 MLP 对正负 patch 的整体排序仍更稳。
+- 这个结果值得继续放大训练样本和随机种子验证，但目前不能直接解释为 QNN 全面更鲁棒。
+
+## 8. Demo 与当前产物
+
+HTML 汇报页：
 
 - `outputs/qnn_improvement_demo.html`
 
-配套文件：
+核心数据与指标：
 
-- `outputs/qnn_ablation_results.csv`
-- `outputs/qnn_ablation_results.json`
-- `outputs/qnn_ablation_results.png`
-- `outputs/noise_robustness_results.csv`
-- `outputs/noise_robustness_results.json`
-- `outputs/noise_robustness.png`
+- `data/feature_dataset.npz`
+- `data/feature_dataset_extended.npz`
+- `outputs/day2_result_table.csv`
+- `outputs/improved_mlp_metrics.json`
 - `outputs/improved_qnn_metrics.json`
-- `outputs/improved_qnn_training_curve.png`
+- `outputs/qnn_ablation_results.csv`
+- `outputs/noise_robustness_results.csv`
+- `outputs/saltpepper_full_validation.csv`
+
+核心展示图：
+
+- `outputs/day2_pipeline_flow.png`
+- `outputs/day2_data_samples.png`
+- `outputs/day2_comparison_overlay.png`
+- `outputs/day2_qnn_overlay.png`
+- `outputs/qnn_ablation_results.png`
+- `outputs/noise_robustness.png`
+- `outputs/saltpepper_full_validation.png`
 - `outputs/improved_comparison_overlay.png`
-- `outputs/qnn_improvement_summary.md`
+
+## 9. 下一步
+
+1. 对 salt-and-pepper 结果做多随机种子验证，避免单次噪声采样误导。
+2. 扩大 QNN 训练样本，优先验证 more-data 主模型是否稳定提升 PR-AUC。
+3. 增加 hard negative mining，减少边缘附近 false positive。
+4. 将 binary detection 扩展为 keypoint type classification，显式区分 L / T / X 等类型。
+5. 整理可现场运行的交互 demo 或 notebook，把当前 HTML 汇报页中的结论与复现实验入口连接起来。

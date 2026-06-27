@@ -43,6 +43,9 @@ outputs/*
 !outputs/improved_comparison_overlay.png
 !outputs/qnn_improvement_demo.html
 !outputs/qnn_improvement_summary.md
+!outputs/saltpepper_full_validation.csv
+!outputs/saltpepper_full_validation.json
+!outputs/saltpepper_full_validation.png
 *.pt
 .tmp*
 .agents/
