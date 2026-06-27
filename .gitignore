@@ -6,7 +6,7 @@ __pycache__/
 .ruff_cache/
 
 data/*.npz
-outputs/
+outputs/*
 !outputs/
 !outputs/day1_overlay_comparison.png
 !outputs/baseline_metrics.json
@@ -17,6 +17,17 @@ outputs/
 !outputs/mlp_overlay.png
 !outputs/mlp_training_curve.png
 !outputs/orb_overlay.png
+!outputs/day2_mlp_metrics.json
+!outputs/day2_mlp_training_curve.png
+!outputs/day2_qnn_metrics.json
+!outputs/day2_qnn_normalizer.npz
+!outputs/day2_qnn_training_curve.png
+!outputs/day2_qnn_overlay.png
+!outputs/day2_comparison_overlay.png
+!outputs/day2_pipeline_flow.png
+!outputs/day2_data_samples.png
+!outputs/day2_progress_summary.md
+!outputs/day2_result_table.csv
 *.pt
 .tmp*
 .agents/

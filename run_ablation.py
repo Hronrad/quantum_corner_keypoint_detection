@@ -155,7 +155,7 @@ def main() -> None:
                 seed=args.seed,
                 output_dir=str(run_dir),
             )
-            metrics = train_qnn_experiment(
+            metrics_payload = train_qnn_experiment(
                 data_path=args.data,
                 output_dir=run_dir,
                 qnn_config=qnn_config,
@@ -164,6 +164,7 @@ def main() -> None:
                 feature_names=feature_names,
                 device_name=args.device,
             )
+            metrics = metrics_payload.get("best", metrics_payload)
             rows.append(
                 {
                     "model": "qnn",

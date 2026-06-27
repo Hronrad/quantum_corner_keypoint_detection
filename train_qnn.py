@@ -12,6 +12,7 @@ loss、optimizer、验证指标和 checkpoint 保存串起来。它不负责图�
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import random
 from pathlib import Path
@@ -36,6 +37,7 @@ from qnn_circuit import DataReuploadingQNN
 
 
 ArrayDataset = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+ArrayDatasetWithTest = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 
 def set_random_seed(seed: int) -> None:
@@ -73,6 +75,26 @@ def load_npz_dataset(path: str | Path) -> ArrayDataset:
 
     _validate_dataset_shapes(X_train, y_train, X_val, y_val)
     return X_train, y_train, X_val, y_val
+
+
+def load_npz_dataset_with_test(path: str | Path) -> ArrayDatasetWithTest:
+    """读取包含 train/val/test 三个划分的 `.npz` 数据文件。"""
+
+    data = np.load(path)
+    required = ["X_train", "y_train", "X_val", "y_val", "X_test", "y_test"]
+    missing = [key for key in required if key not in data]
+    if missing:
+        raise KeyError(f"Dataset {path} is missing fields: {missing}.")
+
+    X_train = np.asarray(data["X_train"], dtype=np.float32)
+    y_train = np.asarray(data["y_train"], dtype=np.float32).reshape(-1)
+    X_val = np.asarray(data["X_val"], dtype=np.float32)
+    y_val = np.asarray(data["y_val"], dtype=np.float32).reshape(-1)
+    X_test = np.asarray(data["X_test"], dtype=np.float32)
+    y_test = np.asarray(data["y_test"], dtype=np.float32).reshape(-1)
+
+    _validate_dataset_shapes_with_test(X_train, y_train, X_val, y_val, X_test, y_test)
+    return X_train, y_train, X_val, y_val, X_test, y_test
 
 
 def select_feature_columns(X: np.ndarray, feature_indices: Optional[Sequence[int]]) -> np.ndarray:
@@ -218,9 +240,16 @@ def train_qnn_experiment(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    X_train, y_train, X_val, y_val = load_npz_dataset(data_path)
+    try:
+        X_train, y_train, X_val, y_val, X_test, y_test = load_npz_dataset_with_test(data_path)
+        test_split_source = "test"
+    except KeyError:
+        X_train, y_train, X_val, y_val = load_npz_dataset(data_path)
+        X_test, y_test = X_val.copy(), y_val.copy()
+        test_split_source = "val_fallback"
     X_train = select_feature_columns(X_train, feature_indices)
     X_val = select_feature_columns(X_val, feature_indices)
+    X_test = select_feature_columns(X_test, feature_indices)
 
     # 第一版采用 n_qubits = input_dim，避免特征消融时做 padding 或隐式丢列。
     input_dim = X_train.shape[1]
@@ -229,10 +258,12 @@ def train_qnn_experiment(
     normalizer = FeatureNormalizer(clip_value=train_config.clip_value)
     Phi_train = normalizer.fit_transform(X_train)
     Phi_val = normalizer.transform(X_val)
+    Phi_test = normalizer.transform(X_test)
     normalizer.save(output_path / "normalizer.npz")
 
     train_loader = make_dataloader(Phi_train, y_train, train_config.batch_size, shuffle=True)
     val_loader = make_dataloader(Phi_val, y_val, train_config.batch_size, shuffle=False)
+    test_loader = make_dataloader(Phi_test, y_test, train_config.batch_size, shuffle=False)
 
     device = _select_device(device_name)
     model = DataReuploadingQNN(**qnn_config.to_dict()).to(device)
@@ -243,6 +274,7 @@ def train_qnn_experiment(
     history: List[Dict[str, float]] = []
     best_f1 = -1.0
     best_metrics: Dict[str, float] = {}
+    best_state_dict: Dict[str, torch.Tensor] | None = None
 
     for epoch in range(1, train_config.epochs + 1):
         model.train()
@@ -275,9 +307,10 @@ def train_qnn_experiment(
         if val_metrics["f1"] > best_f1:
             best_f1 = val_metrics["f1"]
             best_metrics = {"val_loss": val_loss, **val_metrics}
+            best_state_dict = copy.deepcopy(model.state_dict())
             torch.save(
                 {
-                    "model_state_dict": model.state_dict(),
+                    "model_state_dict": best_state_dict,
                     "qnn_config": qnn_config.to_dict(),
                     "train_config": train_config.to_dict(),
                     "feature_indices": list(feature_indices) if feature_indices is not None else None,
@@ -292,7 +325,20 @@ def train_qnn_experiment(
             f"val_f1={val_metrics['f1']:.4f} val_pr_auc={val_metrics['pr_auc']:.4f}"
         )
 
-    _save_json(output_path / "metrics.json", {"best": best_metrics, "history": history})
+    if best_state_dict is not None:
+        model.load_state_dict(best_state_dict)
+    test_loss, test_metrics, _ = evaluate_model(model, test_loader, criterion, device)
+    test_metrics = {"test_loss": test_loss, **test_metrics}
+
+    _save_json(
+        output_path / "metrics.json",
+        {
+            "best": best_metrics,
+            "test": test_metrics,
+            "test_split_source": test_split_source,
+            "history": history,
+        },
+    )
     _save_json(
         output_path / "config.json",
         {
@@ -302,9 +348,10 @@ def train_qnn_experiment(
             "feature_indices": list(feature_indices) if feature_indices is not None else None,
             "feature_names": list(feature_names) if feature_names is not None else None,
             "pos_weight": float(pos_weight.detach().cpu()),
+            "test_split_source": test_split_source,
         },
     )
-    return best_metrics
+    return {"best": best_metrics, "test": test_metrics}
 
 
 def parse_feature_indices(text: Optional[str]) -> Optional[List[int]]:
@@ -376,6 +423,27 @@ def _validate_dataset_shapes(X_train: np.ndarray, y_train: np.ndarray, X_val: np
         raise ValueError("X_val and y_val have inconsistent sample counts.")
     if X_train.shape[1] != X_val.shape[1]:
         raise ValueError("X_train and X_val must have the same feature dimension.")
+
+
+def _validate_dataset_shapes_with_test(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray,
+    y_val: np.ndarray,
+    X_test: np.ndarray,
+    y_test: np.ndarray,
+) -> None:
+    """检查 train/val/test 特征和标签 shape 是否匹配。"""
+
+    _validate_dataset_shapes(X_train, y_train, X_val, y_val)
+    if X_test.ndim != 2:
+        raise ValueError("X_test must have shape (N, d).")
+    if y_test.ndim != 1:
+        raise ValueError("y_test must have shape (N,).")
+    if X_test.shape[0] != y_test.shape[0]:
+        raise ValueError("X_test and y_test have inconsistent sample counts.")
+    if X_test.shape[1] != X_train.shape[1]:
+        raise ValueError("X_test must have the same feature dimension as X_train.")
 
 
 def _select_device(device_name: str) -> torch.device:

@@ -3,6 +3,8 @@ pillow
 matplotlib
 scikit-learn
 opencv-python==4.9.0.80
+torch
+pennylane
+autoray==0.6.11
 
-# Optional integration:
-# torch enables SyntheticKeypointDataset.
+# Optional integration: torch also enables SyntheticKeypointDataset.

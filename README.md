@@ -533,3 +533,55 @@ MLP      0.1219      0.9067   0.2149
 
 ![第一天 overlay 对比图](outputs/day1_overlay_comparison.png)
 ![第一天 baseline 指标](outputs/baseline_metrics.png)
+
+## 第二天 QNN 与统一特征接口
+
+运行完整的 Day 2 pipeline：
+
+```bash
+python scripts/run_day2_pipeline.py --seed 27
+```
+
+该脚本使用计划书推荐的 5 维输入接口：
+
+```text
+[Ix, Iy, lambda1, lambda2, R]
+```
+
+MLP 和 QNN 使用同一份 `data/feature_dataset.npz`。文件包含：
+
+- `X_train`, `y_train`
+- `X_val`, `y_val`
+- `X_test`, `y_test`
+- `feature_names`
+- `train_centers`, `train_image_ids`
+- `val_centers`, `val_image_ids`
+- `test_centers`, `test_image_ids`
+
+主要输出：
+
+- `outputs/day2_mlp_metrics.json`
+- `outputs/day2_mlp_training_curve.png`
+- `outputs/day2_qnn_metrics.json`
+- `outputs/day2_qnn_normalizer.npz`
+- `outputs/day2_qnn_training_curve.png`
+- `outputs/day2_qnn_overlay.png`
+- `outputs/day2_comparison_overlay.png`
+- `outputs/day2_pipeline_flow.png`
+- `outputs/day2_data_samples.png`
+- `outputs/day2_progress_summary.md`
+- `outputs/day2_result_table.csv`
+
+当前 clean test / held-out image 结果：
+
+```text
+Method  Input          Precision  Recall  F1      PR-AUC
+Harris  image          0.1652     0.9500  0.2815  0.8953
+FAST    image          0.0789     0.7833  0.1433  0.7925
+ORB     image          0.0412     1.0000  0.0791  0.7759
+MLP     same features  0.9347     0.9067  0.9205  0.9749
+QNN     same features  0.5238     0.6875  0.5946  0.4672
+```
+
+![第二天 QNN 对比图](outputs/day2_comparison_overlay.png)
+![第二天 QNN 检测图](outputs/day2_qnn_overlay.png)

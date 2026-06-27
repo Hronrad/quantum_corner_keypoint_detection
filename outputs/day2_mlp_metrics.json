@@ -1,0 +1,16 @@
+{
+  "precision": 0.9347079037800687,
+  "recall": 0.9066666666666666,
+  "f1": 0.9204737732656514,
+  "pr_auc": 0.9748902785107153,
+  "train_samples": 4500,
+  "val_samples": 1500,
+  "test_samples": 1500,
+  "feature_names": [
+    "Ix",
+    "Iy",
+    "lambda1",
+    "lambda2",
+    "R"
+  ]
+}
