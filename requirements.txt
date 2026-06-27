@@ -2,7 +2,7 @@ numpy
 pillow
 matplotlib
 scikit-learn
+opencv-python==4.9.0.80
 
-# Optional accelerators/integrations:
-# opencv-python enables native cv2 Harris/FAST calls.
+# Optional integration:
 # torch enables SyntheticKeypointDataset.

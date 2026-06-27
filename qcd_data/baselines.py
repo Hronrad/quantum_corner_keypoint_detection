@@ -57,6 +57,28 @@ def run_fast(
     return fast9_numpy(image_u8, threshold=threshold, max_points=max_points, min_distance=min_distance)
 
 
+def run_orb(
+    image: np.ndarray,
+    nfeatures: int = 80,
+    fast_threshold: int = 5,
+    max_points: int = 80,
+    min_distance: float = 2.0,
+) -> np.ndarray:
+    """Run ORB keypoint detection. Requires OpenCV."""
+    if cv2 is None:
+        raise ImportError("run_orb requires opencv-python.")
+    image_u8 = np.uint8(np.clip(image, 0.0, 1.0) * 255)
+    detector = cv2.ORB_create(
+        nfeatures=nfeatures,
+        edgeThreshold=4,
+        patchSize=15,
+        fastThreshold=fast_threshold,
+    )
+    keypoints = detector.detect(image_u8, None)
+    scored = [(float(kp.response), float(kp.pt[0]), float(kp.pt[1])) for kp in keypoints]
+    return _select_scored_points(scored, max_points, min_distance)
+
+
 def harris_response_numpy(image: np.ndarray, window_size: int = 3, k: float = 0.04) -> np.ndarray:
     image = np.asarray(image, dtype=np.float32)
     iy, ix = np.gradient(image)
@@ -161,6 +183,7 @@ def save_overlay_comparison(
     gt_xy: np.ndarray,
     harris_xy: np.ndarray,
     fast_xy: np.ndarray,
+    orb_xy: np.ndarray,
     mlp_xy: np.ndarray,
     path: Path,
 ) -> None:
@@ -169,9 +192,11 @@ def save_overlay_comparison(
         ("GT keypoints", gt_xy, "lime", "o"),
         ("Harris", harris_xy, "red", "x"),
         ("FAST", fast_xy, "red", "x"),
+        ("ORB", orb_xy, "red", "x"),
         ("MLP", mlp_xy, "red", "x"),
     ]
-    fig, axes = plt.subplots(2, 2, figsize=(7, 7))
+    fig, axes = plt.subplots(2, 3, figsize=(10, 7))
+    axes.flat[-1].axis("off")
     for ax, (title, points, color, marker) in zip(axes.flat, panels):
         ax.imshow(image, cmap="gray", vmin=0.0, vmax=1.0)
         points = np.asarray(points, dtype=np.float32).reshape(-1, 2)

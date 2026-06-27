@@ -20,10 +20,13 @@ corner/keypoint。第一版只负责 QNN 模型搭建、训练、验证和消融
 ├── train_qnn.py
 ├── outputs/
 │   ├── day1_overlay_comparison.png
+│   ├── baseline_metrics.json
+│   ├── baseline_metrics.png
 │   ├── fast_overlay.png
 │   ├── harris_overlay.png
 │   ├── mlp_metrics.json
 │   ├── mlp_overlay.png
+│   ├── orb_overlay.png
 │   └── mlp_training_curve.png
 ├── qcd_data/
 │   ├── __init__.py
@@ -52,7 +55,7 @@ corner/keypoint。第一版只负责 QNN 模型搭建、训练、验证和消融
 python -m pip install -r requirements.txt
 ```
 
-`opencv-python` is optional. If it is installed, the baseline script uses native `cv2.cornerHarris()` and `cv2.FastFeatureDetector_create()`. Without OpenCV, the script uses built-in NumPy Harris and FAST-9 style fallbacks so the Day 1 pipeline still runs.
+`opencv-python` is included so the Day 1 baseline script can run native Harris, FAST, and ORB detectors. The Harris/FAST helpers still include NumPy fallbacks for lightweight smoke tests, but ORB evaluation requires OpenCV.
 
 ## Generate Data
 
@@ -160,10 +163,13 @@ python run_ablation.py --data data/synthetic_corner_data.npz --output-dir output
 ├── train_qnn.py
 ├── outputs/
 │   ├── day1_overlay_comparison.png
+│   ├── baseline_metrics.json
+│   ├── baseline_metrics.png
 │   ├── fast_overlay.png
 │   ├── harris_overlay.png
 │   ├── mlp_metrics.json
 │   ├── mlp_overlay.png
+│   ├── orb_overlay.png
 │   └── mlp_training_curve.png
 ├── qcd_data/
 │   ├── __init__.py
@@ -175,18 +181,22 @@ python run_ablation.py --data data/synthetic_corner_data.npz --output-dir output
   ├── generate_synthetic_dataset.py
   └── run_day1_baselines.py
 ```
-- `outputs/day1_overlay_comparison.png`: 2x2 GT/Harris/FAST/MLP comparison figure.
+- `outputs/day1_overlay_comparison.png`: GT/Harris/FAST/ORB/MLP comparison figure.
+- `outputs/baseline_metrics.json`: Precision/Recall/F1 for Harris, FAST, ORB, and MLP over all 300 synthetic images.
+- `outputs/baseline_metrics.png`: bar-chart summary of the same baseline metrics.
 
-Current MLP validation result from the checked-in run:
+Current full-image baseline evaluation from the checked-in run:
 
 ```text
-precision = 0.9122
-recall    = 0.9147
-f1        = 0.9134
-loss      = 0.0203
+method   precision   recall   f1
+Harris   0.1666      0.9600   0.2839
+FAST     0.0666      0.8733   0.1238
+ORB      0.0296      1.0000   0.0576
+MLP      0.1219      0.9067   0.2149
 ```
 
 ![Day 1 overlay comparison](outputs/day1_overlay_comparison.png)
+![Day 1 baseline metrics](outputs/baseline_metrics.png)
 
 典型用法：
 
@@ -393,10 +403,13 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 ├── quantum_corner_keypoint_detection.pdf
 ├── outputs/
 │   ├── day1_overlay_comparison.png
+│   ├── baseline_metrics.json
+│   ├── baseline_metrics.png
 │   ├── fast_overlay.png
 │   ├── harris_overlay.png
 │   ├── mlp_metrics.json
 │   ├── mlp_overlay.png
+│   ├── orb_overlay.png
 │   └── mlp_training_curve.png
 ├── qcd_data/
 │   ├── __init__.py
@@ -425,7 +438,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 python -m pip install -r requirements.txt
 ```
 
-`opencv-python` 是可选依赖。安装后 baseline 脚本会调用原生 `cv2.cornerHarris()` 和 `cv2.FastFeatureDetector_create()`；如果没有安装 OpenCV，脚本会使用内置的 NumPy Harris 和 FAST-9 风格回退实现，因此第一天闭环仍可运行。
+`opencv-python` 已列入依赖，用于运行原生 Harris、FAST 和 ORB baseline。Harris/FAST 工具函数仍保留 NumPy 回退，方便轻量 smoke test；但 ORB 评估需要 OpenCV。
 
 ## 生成数据
 
@@ -500,18 +513,23 @@ python scripts/run_day1_baselines.py
 - `data/feature_dataset.npz`：`X_features [7500, 9]`、`y [7500]` 和特征名。
 - `outputs/harris_overlay.png`：单张样本上的 Harris 检测结果。
 - `outputs/fast_overlay.png`：单张样本上的 FAST 检测结果。
+- `outputs/orb_overlay.png`：单张样本上的 ORB 检测结果。
 - `outputs/mlp_overlay.png`：单张样本上的 MLP 检测结果。
 - `outputs/mlp_training_curve.png`：MLP 二元交叉熵训练曲线。
 - `outputs/mlp_metrics.json`：数据集摘要、验证指标和 overlay 点匹配指标。
-- `outputs/day1_overlay_comparison.png`：GT/Harris/FAST/MLP 的 2x2 对比图。
+- `outputs/baseline_metrics.json`：300 张合成图上 Harris、FAST、ORB、MLP 的 Precision/Recall/F1。
+- `outputs/baseline_metrics.png`：上述指标的柱状图。
+- `outputs/day1_overlay_comparison.png`：GT/Harris/FAST/ORB/MLP 对比图。
 
-当前已纳入仓库的 MLP 验证结果：
+当前已纳入仓库的全图 baseline 评估结果：
 
 ```text
-precision = 0.9122
-recall    = 0.9147
-f1        = 0.9134
-loss      = 0.0203
+method   precision   recall   f1
+Harris   0.1666      0.9600   0.2839
+FAST     0.0666      0.8733   0.1238
+ORB      0.0296      1.0000   0.0576
+MLP      0.1219      0.9067   0.2149
 ```
 
 ![第一天 overlay 对比图](outputs/day1_overlay_comparison.png)
+![第一天 baseline 指标](outputs/baseline_metrics.png)

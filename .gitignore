@@ -1,11 +1,22 @@
 __pycache__/
 *.py[cod]
+.DS_Store
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
 data/*.npz
 outputs/
+!outputs/
+!outputs/day1_overlay_comparison.png
+!outputs/baseline_metrics.json
+!outputs/baseline_metrics.png
+!outputs/fast_overlay.png
+!outputs/harris_overlay.png
+!outputs/mlp_metrics.json
+!outputs/mlp_overlay.png
+!outputs/mlp_training_curve.png
+!outputs/orb_overlay.png
 *.pt
 .tmp*
 .agents/

@@ -1,0 +1,42 @@
+{
+  "harris": {
+    "precision": 0.16657027183342973,
+    "recall": 0.96,
+    "f1": 0.2838836865450961,
+    "true_positives": 288,
+    "false_positives": 1441,
+    "false_negatives": 12,
+    "detected_points": 1729,
+    "evaluated_images": 300
+  },
+  "fast": {
+    "precision": 0.06664970745357415,
+    "recall": 0.8733333333333333,
+    "f1": 0.12384779012053888,
+    "true_positives": 262,
+    "false_positives": 3669,
+    "false_negatives": 38,
+    "detected_points": 3931,
+    "evaluated_images": 300
+  },
+  "orb": {
+    "precision": 0.029641339788558443,
+    "recall": 1.0,
+    "f1": 0.057576048363880625,
+    "true_positives": 300,
+    "false_positives": 9821,
+    "false_negatives": 0,
+    "detected_points": 10121,
+    "evaluated_images": 300
+  },
+  "mlp": {
+    "precision": 0.12191842223218288,
+    "recall": 0.9066666666666666,
+    "f1": 0.21493480837613593,
+    "true_positives": 272,
+    "false_positives": 1959,
+    "false_negatives": 28,
+    "detected_points": 2231,
+    "evaluated_images": 300
+  }
+}

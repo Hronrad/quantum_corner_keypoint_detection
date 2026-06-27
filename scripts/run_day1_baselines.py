@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from qcd_data.baselines import evaluate_points, run_fast, run_harris, save_overlay, save_overlay_comparison
+from qcd_data.baselines import evaluate_points, run_fast, run_harris, run_orb, save_overlay, save_overlay_comparison
 from qcd_data.features import FEATURE_NAMES, extract_patch_features
 from qcd_data.synthetic import SyntheticKeypointConfig, extract_patches, generate_sample
 
@@ -124,16 +124,19 @@ def main() -> None:
     display_gt = samples[display_index].points_xy
     harris_points = run_harris(display_image, threshold_rel=0.01, max_points=40)
     fast_points = run_fast(display_image, threshold=20, max_points=40)
+    orb_points = run_orb(display_image, max_points=40)
     mlp_points, mlp_probabilities = predict_keypoints_with_mlp(display_image, mlp, config.patch_size)
 
     save_overlay(display_image, harris_points, outputs_dir / "harris_overlay.png", display_gt, "Harris")
     save_overlay(display_image, fast_points, outputs_dir / "fast_overlay.png", display_gt, "FAST")
+    save_overlay(display_image, orb_points, outputs_dir / "orb_overlay.png", display_gt, "ORB")
     save_overlay(display_image, mlp_points, outputs_dir / "mlp_overlay.png", display_gt, "MLP")
     save_overlay_comparison(
         display_image,
         display_gt,
         harris_points,
         fast_points,
+        orb_points,
         mlp_points,
         outputs_dir / "day1_overlay_comparison.png",
     )
@@ -141,7 +144,10 @@ def main() -> None:
 
     harris_metrics = evaluate_points(harris_points, display_gt)
     fast_metrics = evaluate_points(fast_points, display_gt)
+    orb_metrics = evaluate_points(orb_points, display_gt)
     mlp_point_metrics = evaluate_points(mlp_points, display_gt)
+    baseline_metrics = evaluate_baselines(images, keypoints, mlp, config.patch_size)
+    save_baseline_metric_chart(baseline_metrics, outputs_dir / "baseline_metrics.png")
     metrics = {
         "dataset": {
             "num_images": int(len(images)),
@@ -166,17 +172,21 @@ def main() -> None:
             "gt_points": display_gt.tolist(),
             "harris": _metrics_dict(harris_metrics),
             "fast": _metrics_dict(fast_metrics),
+            "orb": _metrics_dict(orb_metrics),
             "mlp": _metrics_dict(mlp_point_metrics),
             "mlp_probability_threshold": 0.5,
             "mlp_probability_max": float(np.max(mlp_probabilities)),
         },
+        "baseline_evaluation": baseline_metrics,
     }
     (outputs_dir / "mlp_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (outputs_dir / "baseline_metrics.json").write_text(json.dumps(baseline_metrics, indent=2), encoding="utf-8")
 
     print("Day 1 baseline pipeline complete.")
     print(f"Wrote {data_dir / 'patch_dataset.npz'}")
     print(f"Wrote {data_dir / 'feature_dataset.npz'}")
     print(f"Wrote {outputs_dir / 'day1_overlay_comparison.png'}")
+    print(f"Wrote {outputs_dir / 'baseline_metrics.json'}")
     print(json.dumps(metrics["mlp_validation"], indent=2))
 
 
@@ -218,6 +228,70 @@ def save_training_curve(loss_curve: list[float], path: Path) -> None:
     ax.set_ylabel("Binary cross entropy")
     ax.set_title("MLP training loss")
     ax.grid(alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def evaluate_baselines(images: np.ndarray, keypoints: np.ndarray, mlp, patch_size: int) -> dict[str, dict[str, float | int]]:
+    totals = {
+        "harris": {"tp": 0, "fp": 0, "fn": 0, "detected_points": 0},
+        "fast": {"tp": 0, "fp": 0, "fn": 0, "detected_points": 0},
+        "orb": {"tp": 0, "fp": 0, "fn": 0, "detected_points": 0},
+        "mlp": {"tp": 0, "fp": 0, "fn": 0, "detected_points": 0},
+    }
+
+    for image, gt_xy in zip(images, keypoints):
+        detections = {
+            "harris": run_harris(image, threshold_rel=0.01, max_points=40),
+            "fast": run_fast(image, threshold=20, max_points=40),
+            "orb": run_orb(image, max_points=40),
+            "mlp": predict_keypoints_with_mlp(image, mlp, patch_size)[0],
+        }
+        for name, points in detections.items():
+            metrics = evaluate_points(points, gt_xy)
+            totals[name]["tp"] += metrics.true_positives
+            totals[name]["fp"] += metrics.false_positives
+            totals[name]["fn"] += metrics.false_negatives
+            totals[name]["detected_points"] += int(len(points))
+
+    results: dict[str, dict[str, float | int]] = {}
+    for name, values in totals.items():
+        tp = int(values["tp"])
+        fp = int(values["fp"])
+        fn = int(values["fn"])
+        precision = tp / max(1, tp + fp)
+        recall = tp / max(1, tp + fn)
+        f1 = 2.0 * precision * recall / max(1e-12, precision + recall)
+        results[name] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "true_positives": tp,
+            "false_positives": fp,
+            "false_negatives": fn,
+            "detected_points": int(values["detected_points"]),
+            "evaluated_images": int(len(images)),
+        }
+    return results
+
+
+def save_baseline_metric_chart(metrics: dict[str, dict[str, float | int]], path: Path) -> None:
+    names = list(metrics)
+    metric_names = ["precision", "recall", "f1"]
+    x = np.arange(len(names))
+    width = 0.24
+    fig, ax = plt.subplots(figsize=(7, 4))
+    for offset, metric_name in enumerate(metric_names):
+        values = [float(metrics[name][metric_name]) for name in names]
+        ax.bar(x + (offset - 1) * width, values, width=width, label=metric_name)
+    ax.set_xticks(x)
+    ax.set_xticklabels([name.upper() if name != "mlp" else "MLP" for name in names])
+    ax.set_ylim(0.0, 1.05)
+    ax.set_ylabel("Score")
+    ax.set_title("Classical baseline comparison on synthetic images")
+    ax.grid(axis="y", alpha=0.25)
+    ax.legend()
     fig.tight_layout()
     fig.savefig(path, dpi=180)
     plt.close(fig)
