@@ -31,3 +31,4 @@ outputs/*
 *.pt
 .tmp*
 .agents/
+docs/
