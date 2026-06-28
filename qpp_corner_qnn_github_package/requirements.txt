@@ -1,0 +1,12 @@
+numpy
+scipy
+pandas
+scikit-learn
+pillow
+matplotlib
+tqdm
+pyyaml
+torch
+pytest
+# Optional image-level FAST/Harris baselines:
+opencv-python

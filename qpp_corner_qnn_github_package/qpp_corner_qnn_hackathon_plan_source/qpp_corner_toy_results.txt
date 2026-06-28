@@ -1,0 +1,15 @@
+
+FEATURES: raw Ix,Iy
+logistic     {'acc': 0.472, 'f1': 0.513, 'prauc': 0.471, 'rocauc': 0.677, 'precision': 0.37, 'recall': 0.833}
+2q-QNN L3    {'acc': 0.639, 'f1': 0.606, 'prauc': 0.53, 'rocauc': 0.747, 'precision': 0.476, 'recall': 0.833}
+1q-QNN L4    {'acc': 0.667, 'f1': 0.667, 'prauc': 0.739, 'rocauc': 0.84, 'precision': 0.5, 'recall': 1.0}
+
+FEATURES: structure eigen lambda1,lambda2
+logistic     {'acc': 0.972, 'f1': 0.957, 'prauc': 1.0, 'rocauc': 1.0, 'precision': 1.0, 'recall': 0.917}
+2q-QNN L3    {'acc': 1.0, 'f1': 1.0, 'prauc': 1.0, 'rocauc': 1.0, 'precision': 1.0, 'recall': 1.0}
+1q-QNN L4    {'acc': 0.778, 'f1': 0.667, 'prauc': 0.79, 'rocauc': 0.826, 'precision': 0.667, 'recall': 0.667}
+
+FEATURES: trace+isotropy
+logistic     {'acc': 0.889, 'f1': 0.818, 'prauc': 0.936, 'rocauc': 0.955, 'precision': 0.9, 'recall': 0.75}
+2q-QNN L3    {'acc': 0.917, 'f1': 0.857, 'prauc': 0.959, 'rocauc': 0.972, 'precision': 1.0, 'recall': 0.75}
+1q-QNN L4    {'acc': 0.722, 'f1': 0.643, 'prauc': 0.744, 'rocauc': 0.816, 'precision': 0.562, 'recall': 0.75}

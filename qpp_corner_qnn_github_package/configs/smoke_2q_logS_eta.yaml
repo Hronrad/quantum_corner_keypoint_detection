@@ -1,0 +1,31 @@
+run:
+  id: smoke_2q_logS_eta
+  seed: 7
+data:
+  data_root: data/raw
+  dataset: smoke_readme_pipeline
+split:
+  train: 0.50
+  val: 0.25
+  test: 0.25
+features:
+  feature_set: logS_eta
+  smooth_sigma: 0.6
+model:
+  type: qnn2
+  L: 1
+  encoding: ryrz
+  entanglement: linear_01
+  readout: z_z_zz
+normalizer:
+  enabled: true
+  clip: 3.0
+  angles: true
+train:
+  epochs: 12
+  patience: 4
+  batch_size: 64
+  lr: 0.01
+  monitor: val_pr_auc
+outputs:
+  plots: true

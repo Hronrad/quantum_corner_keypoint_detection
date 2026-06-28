@@ -1,0 +1,102 @@
+ablation:
+  id: ablation_full
+base:
+  run:
+    seed: 11
+  data:
+    data_root: data/raw
+    dataset: synthetic_keypoints
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  features:
+    smooth_sigma: 0.6
+  normalizer:
+    enabled: true
+    clip: 3.0
+  train:
+    epochs: 100
+    patience: 12
+    batch_size: 128
+    lr: 0.003
+    monitor: val_pr_auc
+  outputs:
+    plots: false
+experiments:
+  - name: threshold_R
+    features: {feature_set: R}
+    normalizer: {enabled: false}
+    model: {type: threshold}
+  - name: threshold_lambda2
+    features: {feature_set: lambda2}
+    normalizer: {enabled: false}
+    model: {type: threshold}
+  - name: threshold_S
+    features: {feature_set: S}
+    normalizer: {enabled: false}
+    model: {type: threshold}
+  - name: threshold_eta
+    features: {feature_set: eta}
+    normalizer: {enabled: false}
+    model: {type: threshold}
+  - name: threshold_logS_plus_eta
+    features: {feature_set: logS_plus_eta, scalar_c: 1.0}
+    normalizer: {enabled: false}
+    model: {type: threshold}
+  - name: logistic_logS_eta
+    features: {feature_set: logS_eta}
+    normalizer: {angles: false}
+    model: {type: logistic}
+  - name: logistic_lambda12
+    features: {feature_set: lambda12}
+    normalizer: {angles: false}
+    model: {type: logistic}
+  - name: mlp_ref5
+    features: {feature_set: ref5}
+    normalizer: {angles: false}
+    model: {type: mlp, hidden: [32, 16], max_iter: 300}
+  - name: qnn2_logS_eta_L1
+    features: {feature_set: logS_eta}
+    normalizer: {angles: true}
+    model: {type: qnn2, L: 1, encoding: ryrz, entanglement: linear_01, readout: z_z_zz}
+  - name: qnn2_logS_eta_L2
+    features: {feature_set: logS_eta}
+    normalizer: {angles: true}
+    model: {type: qnn2, L: 2, encoding: ryrz, entanglement: linear_01, readout: z_z_zz}
+  - name: qnn2_logS_eta_L3
+    features: {feature_set: logS_eta}
+    normalizer: {angles: true}
+    model: {type: qnn2, L: 3, encoding: ryrz, entanglement: linear_01, readout: z_z_zz}
+  - name: qnn2_lambda12_L3
+    features: {feature_set: lambda12}
+    normalizer: {angles: true}
+    model: {type: qnn2, L: 3, encoding: ryrz, entanglement: linear_01, readout: z_z_zz}
+  - name: qnn2_weak_ixiy_L3
+    features: {feature_set: ixiy}
+    normalizer: {angles: true}
+    model: {type: qnn2, L: 3, encoding: ryrz, entanglement: linear_01, readout: z_z_zz}
+  - name: qnn1_scalar_c0
+    features: {feature_set: scalar, scalar_mode: logS_plus_c_eta, scalar_c: 0.0}
+    normalizer: {angles: true}
+    model: {type: qnn1, L: 3, encoding: ryrz}
+  - name: qnn1_scalar_c025
+    features: {feature_set: scalar, scalar_mode: logS_plus_c_eta, scalar_c: 0.25}
+    normalizer: {angles: true}
+    model: {type: qnn1, L: 3, encoding: ryrz}
+  - name: qnn1_scalar_c05
+    features: {feature_set: scalar, scalar_mode: logS_plus_c_eta, scalar_c: 0.5}
+    normalizer: {angles: true}
+    model: {type: qnn1, L: 3, encoding: ryrz}
+  - name: qnn1_scalar_c1
+    features: {feature_set: scalar, scalar_mode: logS_plus_c_eta, scalar_c: 1.0}
+    normalizer: {angles: true}
+    model: {type: qnn1, L: 3, encoding: ryrz}
+  - name: qnn1_scalar_c2
+    features: {feature_set: scalar, scalar_mode: logS_plus_c_eta, scalar_c: 2.0}
+    normalizer: {angles: true}
+    model: {type: qnn1, L: 3, encoding: ryrz}
+  - name: qnn1_scalar_c4
+    features: {feature_set: scalar, scalar_mode: logS_plus_c_eta, scalar_c: 4.0}
+    normalizer: {angles: true}
+    model: {type: qnn1, L: 3, encoding: ryrz}
