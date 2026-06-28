@@ -1,0 +1,246 @@
+{
+  "metrics": [
+    {
+      "split": "test",
+      "sequence": "2d",
+      "method": "FAST tuned",
+      "frames": 6,
+      "gt_points": 54,
+      "mean_detected_points": 25.666666666666668,
+      "tp": 50,
+      "fp": 104,
+      "fn": 4,
+      "precision": 0.3246753246753247,
+      "recall": 0.9259259259259259,
+      "f1": 0.48076923076923084
+    },
+    {
+      "split": "test",
+      "sequence": "2d",
+      "method": "Harris tuned",
+      "frames": 6,
+      "gt_points": 54,
+      "mean_detected_points": 18.666666666666668,
+      "tp": 40,
+      "fp": 72,
+      "fn": 14,
+      "precision": 0.35714285714285715,
+      "recall": 0.7407407407407407,
+      "f1": 0.48192771084337344
+    },
+    {
+      "split": "test",
+      "sequence": "2d",
+      "method": "Logistic motion-tuned",
+      "frames": 6,
+      "gt_points": 54,
+      "mean_detected_points": 14.0,
+      "tp": 29,
+      "fp": 55,
+      "fn": 25,
+      "precision": 0.34523809523809523,
+      "recall": 0.5370370370370371,
+      "f1": 0.42028985507246375
+    },
+    {
+      "split": "test",
+      "sequence": "2d",
+      "method": "Logistic original",
+      "frames": 6,
+      "gt_points": 54,
+      "mean_detected_points": 24.5,
+      "tp": 49,
+      "fp": 98,
+      "fn": 5,
+      "precision": 0.3333333333333333,
+      "recall": 0.9074074074074074,
+      "f1": 0.4875621890547264
+    },
+    {
+      "split": "test",
+      "sequence": "2d",
+      "method": "ORB tuned",
+      "frames": 6,
+      "gt_points": 54,
+      "mean_detected_points": 27.666666666666668,
+      "tp": 48,
+      "fp": 118,
+      "fn": 6,
+      "precision": 0.2891566265060241,
+      "recall": 0.8888888888888888,
+      "f1": 0.43636363636363634
+    },
+    {
+      "split": "test",
+      "sequence": "2d",
+      "method": "QPP QNN2 fine-tuned",
+      "frames": 6,
+      "gt_points": 54,
+      "mean_detected_points": 14.0,
+      "tp": 35,
+      "fp": 49,
+      "fn": 19,
+      "precision": 0.4166666666666667,
+      "recall": 0.6481481481481481,
+      "f1": 0.5072463768115942
+    },
+    {
+      "split": "test",
+      "sequence": "2d",
+      "method": "QPP QNN2 original",
+      "frames": 6,
+      "gt_points": 54,
+      "mean_detected_points": 24.0,
+      "tp": 48,
+      "fp": 96,
+      "fn": 6,
+      "precision": 0.3333333333333333,
+      "recall": 0.8888888888888888,
+      "f1": 0.48484848484848486
+    },
+    {
+      "split": "test",
+      "sequence": "3d",
+      "method": "FAST tuned",
+      "frames": 6,
+      "gt_points": 78,
+      "mean_detected_points": 35.333333333333336,
+      "tp": 73,
+      "fp": 139,
+      "fn": 5,
+      "precision": 0.3443396226415094,
+      "recall": 0.9358974358974359,
+      "f1": 0.503448275862069
+    },
+    {
+      "split": "test",
+      "sequence": "3d",
+      "method": "Harris tuned",
+      "frames": 6,
+      "gt_points": 78,
+      "mean_detected_points": 21.5,
+      "tp": 46,
+      "fp": 83,
+      "fn": 32,
+      "precision": 0.35658914728682173,
+      "recall": 0.5897435897435898,
+      "f1": 0.4444444444444444
+    },
+    {
+      "split": "test",
+      "sequence": "3d",
+      "method": "Logistic motion-tuned",
+      "frames": 6,
+      "gt_points": 78,
+      "mean_detected_points": 11.833333333333334,
+      "tp": 27,
+      "fp": 44,
+      "fn": 51,
+      "precision": 0.38028169014084506,
+      "recall": 0.34615384615384615,
+      "f1": 0.3624161073825503
+    },
+    {
+      "split": "test",
+      "sequence": "3d",
+      "method": "Logistic original",
+      "frames": 6,
+      "gt_points": 78,
+      "mean_detected_points": 25.666666666666668,
+      "tp": 51,
+      "fp": 103,
+      "fn": 27,
+      "precision": 0.33116883116883117,
+      "recall": 0.6538461538461539,
+      "f1": 0.4396551724137931
+    },
+    {
+      "split": "test",
+      "sequence": "3d",
+      "method": "ORB tuned",
+      "frames": 6,
+      "gt_points": 78,
+      "mean_detected_points": 32.5,
+      "tp": 42,
+      "fp": 153,
+      "fn": 36,
+      "precision": 0.2153846153846154,
+      "recall": 0.5384615384615384,
+      "f1": 0.3076923076923077
+    },
+    {
+      "split": "test",
+      "sequence": "3d",
+      "method": "QPP QNN2 fine-tuned",
+      "frames": 6,
+      "gt_points": 78,
+      "mean_detected_points": 14.0,
+      "tp": 37,
+      "fp": 47,
+      "fn": 41,
+      "precision": 0.44047619047619047,
+      "recall": 0.47435897435897434,
+      "f1": 0.4567901234567901
+    },
+    {
+      "split": "test",
+      "sequence": "3d",
+      "method": "QPP QNN2 original",
+      "frames": 6,
+      "gt_points": 78,
+      "mean_detected_points": 24.0,
+      "tp": 45,
+      "fp": 99,
+      "fn": 33,
+      "precision": 0.3125,
+      "recall": 0.5769230769230769,
+      "f1": 0.4054054054054054
+    }
+  ],
+  "configs": {
+    "learning": {
+      "Logistic original": {
+        "quantile": 0.97,
+        "nms_radius": 6.0,
+        "max_points": 32,
+        "min_threshold": null
+      },
+      "QPP QNN2 original": {
+        "quantile": 0.88,
+        "nms_radius": 6.0,
+        "max_points": 24,
+        "min_threshold": null
+      },
+      "Logistic motion-tuned": {
+        "quantile": 0.985,
+        "nms_radius": 14.0,
+        "max_points": 18,
+        "min_threshold": null
+      },
+      "QPP QNN2 fine-tuned": {
+        "quantile": 0.88,
+        "nms_radius": 10.0,
+        "max_points": 14,
+        "min_threshold": null
+      }
+    },
+    "classical": {
+      "Harris tuned": {
+        "threshold_rel": 0.02,
+        "min_distance": 8.0,
+        "max_points": 32
+      },
+      "FAST tuned": {
+        "threshold": 32,
+        "min_distance": 6.0,
+        "max_points": 44
+      },
+      "ORB tuned": {
+        "fast_threshold": 5,
+        "min_distance": 6.0,
+        "max_points": 44,
+        "nfeatures": 132
+      }
+    }
+  }
+}

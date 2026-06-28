@@ -1,55 +1,43 @@
 # 当前阶段结果展示汇总
 
-更新时间：2026-06-27
+更新时间：2026-06-28
 
-## 1. 总体目标与当前状态
+## 1. 总体目标与当前主线
 
-本项目目标是把角点/交点关键点检测任务打通为可复现实验链路：合成几何图像、采样 patch、提取结构张量特征、训练 MLP 与 QNN、评估 classical baseline，并生成 overlay 与汇报页面。
+本项目面向 Quantum Hackathon，目标不是单纯复现经典角点检测，而是探索 **corner / junction keypoint detection 是否可以被少比特、浅层 QNN 表示**。完整流程已经打通：合成几何图像、patch 采样、结构张量特征、classical baseline、MLP、QNN 训练、噪声测试、消融实验和 demo 页面。
 
-当前已经完成：
+当前主线已经从早期的 5/8-qubit 直接特征映射，转为 **QPP-inspired few-qubit QNN**：用 1-2 qubit 和 2-3 层 data-reuploading circuit，把局部梯度结构映射为相位，通过浅层旋转、纠缠和 Z/ZZ 读出学习角点概率。
 
-1. 合成 L-corner、T-junction、X-junction 三类几何样本。
-2. patch-level 二分类数据集：keypoint / non-keypoint。
-3. Harris、FAST、ORB 经典图像检测 baseline。
-4. MLP baseline。
-5. QNN 第一轮训练、消融实验、噪声鲁棒性实验与 demo 页面。
+当前最重要结论：
 
-当前最重要的判断：
+- Classical baseline 只作为比较：Harris / FAST / ORB 误检多，MLP 是强 classical learner。
+- QPP 少比特 QNN 是当前量子主线：2q `lambda12` 在 clean test 上达到 F1 0.9233，接近 5D MLP 的 0.9205。
+- 1q QNN 也能有效工作：`scalar_c4` 的 1q QNN 达到 F1 0.9131，说明少比特浅层线路具备可用表达能力。
+- 噪声感知训练显著改善 salt-and-pepper：QPP QNN2 F1 从 0.5448 提升到 0.7307。
+- 当前还不能声称稳定量子优势：clean/low-data/resource-limited 下 MLP/logistic 多数仍更强。
 
-- clean 条件下 MLP 仍是最强 baseline。
-- QNN 已经完成端到端接入，改进后性能明显高于第一轮 QNN，但尚不能宣称优于 MLP。
-- ORB 在本任务上召回高、误检极多，因此 Precision 与 F1 很低。
-- salt-and-pepper 全测试集验证显示 QNN 的固定阈值 F1 略高于 MLP，但 PR-AUC 仍低，说明排序能力还不稳定。
-
-## 2. 评估指标解释
-
-本项目同时报告点检测指标和 patch 分类指标。对 Harris / FAST / ORB，先把检测点与 GT keypoint 按距离容忍阈值匹配，再统计 TP / FP / FN。对 MLP / QNN，则在 patch-level 使用概率阈值 0.5 得到二分类预测。
+## 2. 指标与数据说明
 
 | Metric | 含义 | 本项目中的解释 |
 | --- | --- | --- |
-| Precision | `TP / (TP + FP)` | 检出的点或 patch 中有多少是真的 keypoint。低 Precision 表示误检多。 |
-| Recall | `TP / (TP + FN)` | GT keypoint 中有多少被找到了。低 Recall 表示漏检多。 |
-| F1 | Precision 与 Recall 的调和平均 | 同时惩罚误检和漏检，适合作为当前阶段的主指标。 |
-| PR-AUC | Precision-Recall 曲线下面积 | 衡量不同阈值下概率或响应分数的整体排序能力；正负样本不均衡时比 ROC-AUC 更有参考价值。 |
-| ROC-AUC | TPR-FPR 曲线下面积 | 只在部分 QNN 训练日志中记录，用于辅助观察排序能力。 |
-| Loss | 训练目标函数值 | MLP / QNN 训练是否收敛的过程指标，不直接等价于检测质量。 |
+| Precision | `TP / (TP + FP)` | 检出的点或 patch 中有多少是真的 keypoint；低 Precision 表示误检多。 |
+| Recall | `TP / (TP + FN)` | GT keypoint 中有多少被找到了；低 Recall 表示漏检多。 |
+| F1 | Precision 与 Recall 的调和平均 | 当前主指标，同时惩罚误检和漏检。 |
+| PR-AUC | Precision-Recall 曲线下面积 | 衡量不同阈值下的排序能力；正负样本不均衡时尤其重要。 |
+| ROC-AUC | TPR-FPR 曲线下面积 | 辅助指标，用于观察概率排序能力。 |
 
-注意：F1 是某个阈值下的表现，PR-AUC 是跨阈值的整体排序表现。因此可能出现“F1 接近或更好，但 PR-AUC 更低”的情况。
+F1 是某个阈值下的结果，PR-AUC 是跨阈值排序能力。因此可能出现 F1 高但 PR-AUC 低的情况。
 
-## 3. 测试集覆盖判断
-
-当前测试集不是只有普通 L-corner。两个数据集的 held-out test split 都按图像划分，避免同一图像的 patch 泄漏到训练和测试中。
+当前测试集不是只有普通 corner，而是包含 L-corner、T-junction、X-junction 三类场景。需要注意：模型当前做的是 **binary keypoint detection**，不是 L/T/X 多类别分类。
 
 | Dataset | Feature Dim | Test Images | Test Scene Types | Test Patches |
 | --- | ---: | ---: | --- | ---: |
-| `feature_dataset.npz` | 5 | 60 | L-corner 20, T-junction 20, X-junction 20 | 1500 |
-| `feature_dataset_extended.npz` | 8 | 60 | L-corner 20, T-junction 20, X-junction 20 | 1500 |
+| `feature_dataset.npz` | 5 | 60 | L 20, T 20, X 20 | 1500 |
+| `feature_dataset_extended.npz` | 8 | 60 | L 20, T 20, X 20 | 1500 |
 
-需要澄清的是，当前模型任务仍是 binary keypoint detection，而不是多类别 keypoint type classification。也就是说，T-junction 和 X-junction 已经作为 keypoint 场景参与测试，但模型不输出“这是 L / T / X 哪一类”，只输出该 patch 是否包含关键点。
+## 3. 6 月 26 日：经典 Baseline 与早期 MLP
 
-## 4. 6 月 26 日：经典 baseline 与早期 MLP
-
-第一阶段完成合成数据、patch 采样、早期特征与四个 baseline 的 overlay 展示。
+第一阶段完成合成数据、patch 采样、经典检测器和早期 MLP。
 
 | Method | Precision | Recall | F1 |
 | --- | ---: | ---: | ---: |
@@ -60,32 +48,23 @@
 
 ![Baseline overlay comparison](../outputs/day1_overlay_comparison.png)
 
-![Baseline metrics](../outputs/baseline_metrics.png)
+ORB 效果差的原因：ORB 面向自然图像中的可重复纹理点，检测阶段依赖 FAST，描述阶段依赖旋转 BRIEF；而当前数据是稀疏几何线条，边缘、端点和抗锯齿像素会产生大量额外 keypoints。评估只把 GT 几何交点算作正例，所以 ORB 召回高但 false positive 极多，Precision 和 F1 很低。
 
-ORB 效果差的主要原因：
+## 4. 6 月 27 日：统一 5 维接口与第一轮 QNN
 
-- ORB 本质上面向自然图像中的可重复局部纹理点，检测阶段依赖 FAST，描述阶段依赖旋转 BRIEF；而本任务是稀疏二值/灰度几何线条，纹理非常少。
-- 合成线条存在大量高对比边缘、端点、抗锯齿像素和交界附近响应，ORB 容易在边缘邻域产生大量额外 keypoints。
-- 当前评估只关心 GT 几何交点，ORB 检出的其他稳定边缘点都会被算作 false positive，因此 Recall 可达 1.0，但 Precision 和 F1 很低。
-- ORB 的 descriptor 匹配优势在这里没有发挥，因为当前任务不是跨图匹配，而是单图关键点定位。
-
-## 5. 6 月 27 日：统一 5 维特征接口与 QNN 第一轮
-
-按照 QNN 计划书，统一输入特征为：
+按照 QNN 计划书，统一输入为：
 
 ```text
 [Ix, Iy, lambda1, lambda2, R]
 ```
 
-MLP 与 QNN 使用同一份归一化前特征矩阵，训练阶段只在 train split 上拟合 normalizer。
+MLP 与 QNN 使用同一份特征矩阵，normalizer 只在 train split 上拟合。
 
 | Split | Shape | Feature Dim |
 | --- | ---: | ---: |
-| `X_train` | `(4500, 5)` | 5 |
-| `X_val` | `(1500, 5)` | 5 |
-| `X_test` | `(1500, 5)` | 5 |
-
-第一轮 clean 结果：
+| Train | `(4500, 5)` | 5 |
+| Val | `(1500, 5)` | 5 |
+| Test | `(1500, 5)` | 5 |
 
 | Method | Input | Precision | Recall | F1 | PR-AUC |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -95,44 +74,20 @@ MLP 与 QNN 使用同一份归一化前特征矩阵，训练阶段只在 train s
 | MLP | same 5-D features | 0.9347 | 0.9067 | 0.9205 | 0.9749 |
 | QNN | same 5-D features | 0.5238 | 0.6875 | 0.5946 | 0.4672 |
 
-![Task flow](../outputs/day2_pipeline_flow.png)
+![Task flow](../outputs/pipeline_flow.png)
 
-![Data samples](../outputs/day2_data_samples.png)
+![GT and detector comparison](../outputs/comparison_overlay.png)
 
-![GT and detector comparison](../outputs/day2_comparison_overlay.png)
+结论：链路完整，但第一轮 QNN 性能不足。其价值主要是证明 `features -> QNN -> probability -> loss -> metrics -> overlay` 已经跑通。
 
-![QNN detections](../outputs/day2_qnn_overlay.png)
+## 5. 6 月 28 日早期：扩展特征、QNN 消融与噪声验证
 
-阶段结论：
+在进入 QPP 主线之前，先做了 8 维特征、更多 QNN 结构和噪声鲁棒性验证：
 
-- 5 维接口已经满足 MLP / QNN 共用输入的要求。
-- MLP 在 clean test 上表现稳定，是当前最强学习型 baseline。
-- 第一轮 QNN 的链路完整，但性能不足，主要价值是证明 `features -> QNN -> probability -> loss -> metrics -> overlay` 已打通。
-
-## 6. 提升实验：扩展特征、QNN 消融与更长训练
-
-参考 QNN 计划书和进一步提升建议后，完成了以下实验：
-
-- 输入从 5 维扩展到 8 维：`[Ix, Iy, Ix2, Iy2, IxIy, lambda1, lambda2, R]`。
+- 输入扩展为 `[Ix, Iy, Ix2, Iy2, IxIy, lambda1, lambda2, R]`。
 - QNN readout 从 Z-only 扩展到 Z + neighbor ZZ。
-- 对比无纠缠、线性纠缠、环形纠缠。
-- 对比 1 / 2 / 3 层 QNN。
-- 加入 trainable input scaling。
-- 使用 small-angle initialization。
-- 增加 more-data improved run。
-
-改进主模型配置：
-
-```text
-features = 8-D
-layers = 2
-encoding = RyRz
-entanglement = ring
-readout = Z + neighbor ZZ
-trainable input scaling = true
-train samples = 220
-test samples = 100
-```
+- 对比无纠缠、线性纠缠、环形纠缠和 1/2/3 层。
+- 加入 trainable input scaling、small-angle initialization 和 more-data run。
 
 | Model | Precision | Recall | F1 | PR-AUC |
 | --- | ---: | ---: | ---: | ---: |
@@ -141,16 +96,9 @@ test samples = 100
 
 ![QNN ablation results](../outputs/qnn_ablation_results.png)
 
-消融观察：
+### 5.1 噪声鲁棒性与 Salt-and-Pepper 放大验证
 
-- 改进 QNN 相比第一轮 QNN 有明显提升：F1 从 0.5946 到 0.7391，PR-AUC 从 0.4672 到 0.7909。
-- 小样本消融波动较大，不能只凭单个配置断言结构优劣。
-- `Z + ZZ` readout 与 trainable input scaling 对部分配置有明显帮助。
-- 更深不必然更好；当前 L=3 在小子集上可达到较高 F1，但 more-data 主模型选择 L=2 更稳妥。
-
-## 7. 噪声鲁棒性与 salt-and-pepper 放大验证
-
-噪声实验覆盖 clean、Gaussian、blur、salt-and-pepper。第一轮鲁棒性实验为了控制 QNN 推理耗时，在 120 个 held-out patch 上评估 MLP / QNN。
+第一轮噪声测试在 120 个 held-out patch 上评估：
 
 | Case | MLP F1 | QNN F1 |
 | --- | ---: | ---: |
@@ -162,7 +110,7 @@ test samples = 100
 
 ![Noise robustness](../outputs/noise_robustness.png)
 
-由于 salt-and-pepper 下 MLP 与 QNN 的 F1 很接近，已补充完整 1500 个 held-out patch 的放大验证：
+由于 salt-and-pepper 下 MLP 与 QNN F1 接近，随后补充了完整 1500 held-out patch 验证：
 
 | Method | Samples | Positives | Precision | Recall | F1 | PR-AUC |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -171,44 +119,292 @@ test samples = 100
 
 ![Salt-and-pepper full validation](../outputs/saltpepper_full_validation.png)
 
-放大验证结论：
+结论：固定阈值下 QNN F1 高于 MLP，但 PR-AUC 低于 MLP，说明 QNN 排序能力仍不稳定，不能据此直接声称全面鲁棒优势。
 
-- 在固定阈值 0.5 下，QNN 的 F1 高于 MLP，主要来自更高 Precision。
-- MLP 的 PR-AUC 明显高于 QNN，说明 MLP 对正负 patch 的整体排序仍更稳。
-- 这个结果值得继续放大训练样本和随机种子验证，但目前不能直接解释为 QNN 全面更鲁棒。
+## 6. QPP-Inspired 少比特 QNN 主线
 
-## 8. Demo 与当前产物
+`qpp_corner_qnn_github_package` 提供了 1q/2q exact-statevector QNN、QPP 风格特征、配置化实验和 smoke tests。原包自带结果只有 smoke 级别，因此已经补跑当前项目 full split：4500 train / 1500 val / 1500 test。
 
-HTML 汇报页：
+### 6.1 特征定义
 
+对每个 patch 计算 structure tensor：
+
+$$
+M(p)=\sum_{(u,v)\in W} w(u,v)
+\begin{bmatrix}
+I_x(u,v)^2 & I_x(u,v)I_y(u,v) \\
+I_x(u,v)I_y(u,v) & I_y(u,v)^2
+\end{bmatrix}.
+$$
+
+设特征值为：
+
+$$
+\lambda_1 \ge \lambda_2 \ge 0.
+$$
+
+其中 $$\lambda_2$$ 是较小特征值。边缘区域通常只有一个方向梯度强，$$\lambda_2$$ 小；角点/交点区域两个方向都强，$$\lambda_2$$ 会变大，因此它本身就是一个 classical cornerness score。
+
+局部能量与各向同性为：
+
+$$
+S=\lambda_1+\lambda_2,
+$$
+
+$$
+\eta=\frac{4\lambda_1\lambda_2}{(\lambda_1+\lambda_2)^2+\epsilon}.
+$$
+
+QPP 特征为：
+
+$$
+\mathrm{lambda12}=[\lambda_1,\lambda_2],
+$$
+
+$$
+\mathrm{logS\_eta}=[\log(S+\epsilon),\eta],
+$$
+
+$$
+\mathrm{scalar\_c2}=\log(S+\epsilon)+2\eta,
+$$
+
+$$
+\mathrm{scalar\_c4}=\log(S+\epsilon)+4\eta.
+$$
+
+`scalar_c2` 和 `scalar_c4` 把局部能量与各向同性压成单个相位变量，适合 1q QNN；`lambda12` 和 `logS_eta` 保留二维结构，适合 2q QNN。
+
+### 6.2 Threshold 与 Logistic 含义
+
+Threshold 是一个非常简单的 classical baseline，但更准确地说它是 **single-score reference detector**，不是 Harris/FAST/ORB 那类完整图像关键点算法。这里使用：
+
+$$
+s(p)=\lambda_2(p),
+$$
+
+在 validation set 上选择最大化 F1 的阈值 $$\tau$$，测试时：
+
+$$
+\hat{y}(p)=\mathbf{1}[s(p)\ge \tau].
+$$
+
+Logistic 是同特征 classical classifier。对 `logS_eta` 或 `lambda12` 做 train-only normalization 后学习：
+
+$$
+P(y=1\mid x)=\sigma(w^\top x+b).
+$$
+
+它用于判断 QPP QNN 是否比同特征的简单 classical learner 更有价值。
+
+### 6.3 Clean Full Split
+
+| Method | Features | Qubits | Layers | Precision | Recall | F1 | PR-AUC |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Threshold | lambda2 | 0 | 0 | 0.9128 | 0.9067 | 0.9097 | 0.9635 |
+| Logistic | logS_eta | 0 | 0 | 0.8683 | 0.9667 | 0.9148 | 0.9664 |
+| QPP QNN1 | scalar_c2 | 1 | 2 | 0.8850 | 0.9233 | 0.9038 | 0.9357 |
+| QPP QNN1 | scalar_c4 | 1 | 2 | 0.8679 | 0.9633 | 0.9131 | 0.9437 |
+| QPP QNN2 | logS_eta | 2 | 2 | 0.8675 | 0.9600 | 0.9114 | 0.9562 |
+| QPP QNN2 | lambda12 | 2 | 2 | 0.8865 | 0.9633 | 0.9233 | 0.9448 |
+
+![QPP few-qubit full split results](../outputs/qpp_few_qubit_results.png)
+
+解释：2q `lambda12` QPP QNN 的 F1 已经接近甚至略高于 5D MLP，但 PR-AUC 仍低于 MLP/logistic，说明固定阈值性能强，整体排序能力仍需提升。
+
+## 7. QPP 噪声、少样本与消融补充实验
+
+### 7.1 Clean-Train 噪声鲁棒性
+
+训练使用 clean train split，阈值在 clean validation split 上选择，测试时对 held-out test images 加噪声后重新提取特征。
+
+| Case | Threshold F1 | Logistic F1 | QPP QNN1 F1 | QPP QNN2 F1 |
+| --- | ---: | ---: | ---: | ---: |
+| clean | 0.9097 | 0.9148 | 0.9131 | 0.9204 |
+| gaussian_0.04 | 0.9176 | 0.3594 | 0.9043 | 0.9080 |
+| gaussian_0.08 | 0.8967 | 0.3514 | 0.3989 | 0.8266 |
+| blur_0.9 | 0.4988 | 0.9000 | 0.8100 | 0.6797 |
+| saltpepper_0.03 | 0.5480 | 0.4065 | 0.4220 | 0.4970 |
+
+![QPP noise robustness](../outputs/qpp_noise_robustness.png)
+
+### 7.2 噪声感知训练
+
+在 train split 加入 Gaussian、blur、salt-and-pepper augmentation 后，测试 salt-and-pepper。
+
+| Setting | Train Samples | Precision | Recall | F1 | PR-AUC |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Clean train | 4500 | 0.3768 | 0.9833 | 0.5448 | 0.4857 |
+| Noise-aware train | 22500 | 0.6407 | 0.8500 | 0.7307 | 0.7712 |
+
+![Noise-aware QPP QNN](../outputs/qpp_noise_aware_results.png)
+
+这是当前最明确的 QPP 提升结果：噪声感知训练显著恢复 salt-and-pepper 下的 F1 和 PR-AUC。
+
+### 7.3 少样本实验
+
+比较 20/50/100/200 train positives 下的 QPP QNN、logistic、MLP。每组使用 1:4 正负样本，测试仍为 full test split。
+
+| Train Positives | Logistic F1 / PR-AUC | MLP F1 / PR-AUC | QPP QNN F1 / PR-AUC |
+| ---: | ---: | ---: | ---: |
+| 20 | 0.9031 / 0.9589 | 0.9305 / 0.9700 | 0.8324 / 0.7341 |
+| 50 | 0.8904 / 0.9587 | 0.9281 / 0.9653 | 0.8037 / 0.8080 |
+| 100 | 0.9115 / 0.9635 | 0.9290 / 0.9680 | 0.8311 / 0.8429 |
+| 200 | 0.9115 / 0.9638 | 0.9320 / 0.9696 | 0.8356 / 0.9006 |
+
+![Low-sample comparison](../outputs/qpp_low_sample_results.png)
+
+结论：当前 low-data 设置没有放大 QPP 优势，MLP/logistic 更强。QPP 的 PR-AUC 随样本量增加明显上升，说明训练样本仍是关键限制。
+
+### 7.4 量子结构消融
+
+| Experiment | Best F1 | Observation |
+| --- | ---: | --- |
+| 1q scalarizer | 0.9131 | 单比特浅层线路已经可用。 |
+| 2q lambda12, 1/2/3 layers | 0.9269 | L=3 F1 略高，L=2 PR-AUC/稳定性较好。 |
+| Entanglement none / linear / bidirectional | 0.9211-0.9205 | 纠缠方式差异不大，说明当前特征本身已很强。 |
+| Readout Z-only / Z+ZZ / X,Y,Z+ZZ | 0.9279 | richer readout 提高 PR-AUC，X/Y/Z+ZZ 最好。 |
+
+![QPP structure ablation](../outputs/qpp_structure_ablation_results.png)
+
+### 7.5 相位映射实验
+
+| Phase Mapping | F1 | PR-AUC |
+| --- | ---: | ---: |
+| fixed scalarizer | 0.9131 | 0.9681 |
+| learnable scalarizer | 0.9163 | 0.9468 |
+| log-eigenvalue encoding | 0.9219 | 0.9658 |
+| symmetry-preserving logS_eta | 0.9203 | 0.9588 |
+| interleaved phase encoding | 0.8971 | 0.9177 |
+
+![QPP phase mapping](../outputs/qpp_phase_mapping_results.png)
+
+结论：log-eigenvalue 和 symmetry-preserving encoding 表现稳定；当前 interleaved phase 版本未带来提升，后续需要更明确地把 junction 对称性写进编码。
+
+### 7.6 资源受限验证
+
+固定 100 train positives、二维输入、QPP 使用 2 qubits / 2 layers，并把 QPP score 离散到 1024-shot resolution；MLP 使用一个 8-unit hidden layer。
+
+| Condition | Logistic F1 / PR-AUC | MLP F1 / PR-AUC | QPP QNN F1 / PR-AUC |
+| --- | ---: | ---: | ---: |
+| clean | 0.9231 / 0.9645 | 0.9233 / 0.9698 | 0.8892 / 0.8864 |
+| saltpepper_0.03 | 0.5276 / 0.7668 | 0.4699 / 0.7352 | 0.5434 / 0.3289 |
+
+![Resource-limited comparison](../outputs/qpp_resource_advantage_results.png)
+
+结论：clean 资源受限下 QPP 未超过 classical；salt-and-pepper 固定阈值 F1 略高于 MLP/logistic，但 PR-AUC 很低，说明还不是稳定优势。
+
+## 8. 最终 Clean-Test 对比
+
+| Method | Input | Precision | Recall | F1 | PR-AUC |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Harris | image | 0.1652 | 0.9500 | 0.2815 | 0.8953 |
+| FAST | image | 0.0789 | 0.7833 | 0.1433 | 0.7925 |
+| ORB | image | 0.0412 | 1.0000 | 0.0791 | 0.7759 |
+| MLP | same 5-D features | 0.9347 | 0.9067 | 0.9205 | 0.9749 |
+| Early QNN | same 5-D features | 0.5238 | 0.6875 | 0.5946 | 0.4672 |
+| Threshold | lambda2 | 0.9128 | 0.9067 | 0.9097 | 0.9635 |
+| Logistic | logS_eta | 0.8683 | 0.9667 | 0.9148 | 0.9664 |
+| QPP QNN1 | scalar_c4 | 0.8679 | 0.9633 | 0.9131 | 0.9437 |
+| QPP QNN2 | lambda12 | 0.8865 | 0.9633 | 0.9233 | 0.9448 |
+
+![Final clean-test comparison](../outputs/final_comparison_results.png)
+
+## 9. 当前产物
+
+### 9.1 Demo 视频
+
+已生成两类演示材料：
+
+| Demo | Source | 内容 | 输出 |
+| --- | --- | --- | --- |
+| Real-data preview | HPatches example sequence | Harris / FAST / ORB / QPP QNN overlay，6 帧 | `outputs/realdata_hpatches_qpp_overlay.mp4` / `.gif` |
+| Real-data preview | KITTI drive 0001 | 2x2 上下排布：Logistic / Harris / FAST / 2-qubit QNN，72 帧，2 fps，约 36 秒；各算法检测点统一红色标注 | `outputs/realdata_kitti_qpp_overlay.mp4` / `.gif` |
+| Dynamic noise robustness | synthetic held-out test image | 同一图像从 clean 逐渐加入 Gaussian noise，Logistic / FAST / 1-qubit QNN / 2-qubit QNN 对比，GT 以绿色圆圈叠加 | `outputs/dynamic_noise_robustness_demo.mp4` / `.gif` |
+| Real dataset samples | Oxford VGG / EuRoC MAV / TUM RGB-D | 下载小批真实数据样例并生成拼图，用于说明真实图像大致外观 | `outputs/real_dataset_samples.png` |
+| Synthetic motion benchmark | generated 2D / 3D geometry | 2D 几何体旋转/平移/缩放与 3D 线框 cube/pyramid 投影运动，评估 Harris / FAST / ORB / Logistic / QPP QNN2 | `outputs/synthetic_motion_2d_comparison.mp4` / `outputs/synthetic_motion_3d_comparison.mp4` |
+
+真实数据 preview 暂无 GT 标注，因此只报告 keypoint count 和 QPP score summary，不报告 Precision / Recall / F1。视频已改为 H.264/yuv420p 编码，并提供 GIF 备份，避免播放器出现绿屏。动态噪声视频固定同一张合成测试图，使用固定 Gaussian noise field 逐步增加强度，避免内容跳变。
+
+核心脚本：
+
+- 固定 5 维输入接口与首轮训练管线
+- `scripts/run_improvement_experiments.py`
+- `scripts/run_qpp_few_qubit_experiments.py`
+- `scripts/run_qpp_noise_robustness.py`
+- `scripts/run_qpp_next_step_experiments.py`
+- `scripts/build_realdata_and_noise_demos.py`
+- `scripts/download_real_dataset_previews.py`
+
+核心输出：
+
+- `outputs/final_comparison_results.csv`
+- `outputs/qpp_few_qubit_results.csv`
+- `outputs/qpp_noise_robustness_results.csv`
+- `outputs/qpp_noise_aware_results.csv`
+- `outputs/qpp_low_sample_results.csv`
+- `outputs/qpp_structure_ablation_results.csv`
+- `outputs/qpp_phase_mapping_results.csv`
+- `outputs/qpp_resource_advantage_results.csv`
+- `outputs/realdata_preview_report.md`
+- `outputs/real_dataset_samples.png`
+- `outputs/real_dataset_samples_report.md`
+- `outputs/realdata_hpatches_qpp_overlay.mp4`
+- `outputs/realdata_kitti_qpp_overlay.mp4`
+- `outputs/dynamic_noise_robustness_demo.mp4`
+- `outputs/synthetic_motion_metrics.csv`
+- `outputs/synthetic_motion_2d_comparison.mp4`
+- `outputs/synthetic_motion_3d_comparison.mp4`
 - `outputs/qnn_improvement_demo.html`
 
-核心数据与指标：
+### 9.2 合成 2D / 3D 连续运动数据集
 
-- `data/feature_dataset.npz`
-- `data/feature_dataset_extended.npz`
-- `outputs/day2_result_table.csv`
-- `outputs/improved_mlp_metrics.json`
-- `outputs/improved_qnn_metrics.json`
-- `outputs/qnn_ablation_results.csv`
-- `outputs/noise_robustness_results.csv`
-- `outputs/saltpepper_full_validation.csv`
+已新增合成运动 benchmark：生成连续 2D 平面几何体运动和 3D 线框几何体投影运动，并用几何顶点/交点作为 GT keypoints。
 
-核心展示图：
+| Sequence | Method | Precision | Recall | F1 |
+| --- | --- | ---: | ---: | ---: |
+| 2D motion | Harris | 0.3346 | 0.9778 | 0.4986 |
+| 2D motion | FAST | 0.3005 | 0.9417 | 0.4556 |
+| 2D motion | ORB | 0.2887 | 0.8333 | 0.4289 |
+| 2D motion | Logistic | 0.1475 | 0.9833 | 0.2565 |
+| 2D motion | QPP QNN2 | 0.1467 | 0.9778 | 0.2551 |
+| 3D motion | FAST | 0.2573 | 0.9207 | 0.4022 |
+| 3D motion | Harris | 0.2467 | 0.7253 | 0.3682 |
+| 3D motion | Logistic | 0.1821 | 0.8453 | 0.2996 |
+| 3D motion | QPP QNN2 | 0.1750 | 0.8124 | 0.2880 |
+| 3D motion | ORB | 0.1777 | 0.3946 | 0.2450 |
 
-- `outputs/day2_pipeline_flow.png`
-- `outputs/day2_data_samples.png`
-- `outputs/day2_comparison_overlay.png`
-- `outputs/day2_qnn_overlay.png`
-- `outputs/qnn_ablation_results.png`
-- `outputs/noise_robustness.png`
-- `outputs/saltpepper_full_validation.png`
-- `outputs/improved_comparison_overlay.png`
+观察：当前 QPP QNN2 在新合成运动分布上仍能覆盖大量真实几何顶点，Recall 较高；但直接沿用 patch 分类阈值做整图滑窗会产生大量重复/邻近误检，平均每帧达到 `max_points=60`，Precision 和 F1 被明显压低。下一步应加入运动序列专用的自适应阈值、NMS 半径调参、temporal tracking，以及用这类 2D/3D motion 数据对 QPP QNN 做 fine-tuning 或 domain-randomized training。
 
-## 9. 下一步
+### 9.3 Motion Domain Fine-Tuning、Adaptive Threshold 与 Stronger NMS
 
-1. 对 salt-and-pepper 结果做多随机种子验证，避免单次噪声采样误导。
-2. 扩大 QNN 训练样本，优先验证 more-data 主模型是否稳定提升 PR-AUC。
-3. 增加 hard negative mining，减少边缘附近 false positive。
-4. 将 binary detection 扩展为 keypoint type classification，显式区分 L / T / X 等类型。
-5. 整理可现场运行的交互 demo 或 notebook，把当前 HTML 汇报页中的结论与复现实验入口连接起来。
+已完成 motion-domain adaptation 实验：
+
+- 按每个序列前 70% / 中间 15% / 后 15% 划分 train / validation / test frame，避免直接在测试帧上调参。
+- 从 motion frame 中采样 GT 附近 positive patch、随机 background negative patch，以及原始 QPP QNN 的 hard false-positive negative patch。
+- 加入 brightness / contrast jitter、Gaussian noise、mild blur、少量 salt-and-pepper，形成 domain-randomized fine-tuning 数据。
+- 对学习型检测器使用 validation frame 调 per-frame score quantile threshold、NMS radius 和 max points。
+- 对 Harris / FAST / ORB 同样在 validation frame 上调阈值、NMS radius 和 max points。
+
+Test split 结果：
+
+| Sequence | Method | Precision | Recall | F1 | Mean Detected |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 2D motion | QPP QNN2 original + adaptive/NMS | 0.3333 | 0.8889 | 0.4848 | 24.0 |
+| 2D motion | QPP QNN2 fine-tuned + adaptive/NMS | 0.4167 | 0.6481 | 0.5072 | 14.0 |
+| 2D motion | Harris tuned | 0.3571 | 0.7407 | 0.4819 | 18.7 |
+| 2D motion | FAST tuned | 0.3247 | 0.9259 | 0.4808 | 25.7 |
+| 3D motion | QPP QNN2 original + adaptive/NMS | 0.3125 | 0.5769 | 0.4054 | 24.0 |
+| 3D motion | QPP QNN2 fine-tuned + adaptive/NMS | 0.4405 | 0.4744 | 0.4568 | 14.0 |
+| 3D motion | FAST tuned | 0.3443 | 0.9359 | 0.5034 | 35.3 |
+| 3D motion | Harris tuned | 0.3566 | 0.5897 | 0.4444 | 21.5 |
+
+结论：adaptive threshold + stronger NMS 已经显著减少 QPP QNN2 的重复检测；motion/domain-randomized fine-tuning 进一步提高 Precision 和 F1。当前 fine-tuned QNN 在 2D motion 上达到最高 F1，在 3D motion 上仍略低于 FAST，但明显优于原始 QNN。下一步更适合继续做 temporal tracking / recurrent smoothing，让 QNN 的检测点在连续帧之间保持一致。
+
+## 10. 下一步建议
+
+1. 多随机种子重复 QPP 实验，报告均值和方差。
+2. 把 binary detection 扩展为 L / T / X keypoint type classification。
+3. 重新设计 junction-aware 相位编码，把对称性、交叉方向和多方向梯度更直接地映射到量子叠加与纠缠结构。
+4. 做更严格的 hardware-aware / finite-shot 实验：不同 shots、读出噪声、线路深度和参数量约束。
+5. 在真实图像或更复杂合成场景上验证 QPP QNN 是否仍能保持少比特优势。

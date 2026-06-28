@@ -1,0 +1,37 @@
+[
+  {
+    "name": "clean_train_saltpepper_test",
+    "model_name": "qpp_qnn2_clean_train",
+    "feature_set": "lambda12",
+    "n_qubits": 2,
+    "layers": 2,
+    "train_samples": 4500,
+    "test_samples": 1500,
+    "val_f1": 0.9161290322580645,
+    "threshold": 0.6465219031296301,
+    "precision": 0.3767560664112388,
+    "recall": 0.9833333333333333,
+    "f1": 0.5447830101569714,
+    "roc_auc": 0.8418,
+    "pr_auc": 0.48567423081358496,
+    "setting": "clean train"
+  },
+  {
+    "name": "noise_aware_train_saltpepper_test",
+    "model_name": "qpp_qnn2_noise_aware",
+    "feature_set": "lambda12",
+    "n_qubits": 2,
+    "layers": 2,
+    "train_samples": 22500,
+    "test_samples": 1500,
+    "val_f1": 0.7768987341772152,
+    "threshold": 0.8453675461981172,
+    "precision": 0.6407035175879398,
+    "recall": 0.85,
+    "f1": 0.7306590257879656,
+    "roc_auc": 0.9326625,
+    "pr_auc": 0.7712406449656249,
+    "setting": "noise-aware train",
+    "val_samples": 3000
+  }
+]
