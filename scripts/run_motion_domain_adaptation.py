@@ -31,7 +31,7 @@ from qpp_corner.qnn_torch import DataReuploadingQNN2
 from qpp_corner.train import predict_torch, train_torch_classifier, write_history_csv
 from scripts.build_realdata_and_noise_demos import load_noise_qpp_detectors, sliding_patches, write_rows, write_video
 from scripts.run_qpp_next_step_experiments import qpp_feature_sets_from_extended
-from scripts.run_synthetic_motion_benchmark import FrameRecord, build_dataset, make_comparison_frame
+from scripts.run_synthetic_motion_benchmark import FrameRecord, build_dataset
 
 
 @dataclass
@@ -64,37 +64,46 @@ def main() -> None:
     detectors = load_noise_qpp_detectors()
 
     train_pack = build_motion_patch_pack(splits["train"], args, detectors["qpp_2q"], augment=True)
-    val_pack = build_motion_patch_pack(splits["val"], args, detectors["qpp_2q"], augment=False)
-    test_pack = build_motion_patch_pack(splits["test"], args, detectors["qpp_2q"], augment=False)
-    save_patch_dataset(args.data_dir / "synthetic_motion_finetune_dataset.npz", train_pack, val_pack, test_pack)
+    if args.render_only:
+        qpp_ft = load_finetuned_qpp(run_dir)
+        logistic_motion = train_motion_logistic(train_pack)
+        detector_specs = build_detector_specs(detectors, qpp_ft, logistic_motion)
+        tuned_configs, classical_configs = load_saved_configs(args.output_dir / "synthetic_motion_adapted_metrics.json")
+        test_rows: list[dict] = []
+        frame_rows: list[dict] = []
+    else:
+        val_pack = build_motion_patch_pack(splits["val"], args, detectors["qpp_2q"], augment=False)
+        test_pack = build_motion_patch_pack(splits["test"], args, detectors["qpp_2q"], augment=False)
+        save_patch_dataset(args.data_dir / "synthetic_motion_finetune_dataset.npz", train_pack, val_pack, test_pack)
 
-    qpp_ft = train_finetuned_qpp(train_pack, val_pack, args, run_dir)
-    logistic_motion = train_motion_logistic(train_pack)
+        qpp_ft = train_finetuned_qpp(train_pack, val_pack, args, run_dir)
+        logistic_motion = train_motion_logistic(train_pack)
 
-    detector_specs = build_detector_specs(detectors, qpp_ft, logistic_motion)
-    tuned_configs = tune_selection_configs(splits["val"], detector_specs, args)
-    classical_configs = tune_classical_configs(splits["val"], args)
+        detector_specs = build_detector_specs(detectors, qpp_ft, logistic_motion)
+        tuned_configs = tune_selection_configs(splits["val"], detector_specs, args)
+        classical_configs = tune_classical_configs(splits["val"], args)
 
-    test_rows, frame_rows = evaluate_adapted(splits["test"], detector_specs, tuned_configs, classical_configs, args)
+        test_rows, frame_rows = evaluate_adapted(splits["test"], detector_specs, tuned_configs, classical_configs, args)
     all_video_frames = build_video_frames(records, detector_specs, tuned_configs, classical_configs, args)
 
-    write_rows(args.output_dir / "synthetic_motion_adapted_metrics.csv", test_rows)
-    write_rows(args.output_dir / "synthetic_motion_adapted_frame_metrics.csv", frame_rows)
-    (args.output_dir / "synthetic_motion_adapted_metrics.json").write_text(
-        json.dumps({"metrics": test_rows, "configs": serialize_configs(tuned_configs, classical_configs)}, indent=2),
-        encoding="utf-8",
-    )
-    save_adapted_plot(test_rows, args.output_dir / "synthetic_motion_adapted_metrics.png")
-    save_adaptation_report(
-        args.output_dir / "synthetic_motion_adaptation_report.md",
-        test_rows,
-        train_pack,
-        val_pack,
-        test_pack,
-        tuned_configs,
-        classical_configs,
-        args,
-    )
+    if not args.render_only:
+        write_rows(args.output_dir / "synthetic_motion_adapted_metrics.csv", test_rows)
+        write_rows(args.output_dir / "synthetic_motion_adapted_frame_metrics.csv", frame_rows)
+        (args.output_dir / "synthetic_motion_adapted_metrics.json").write_text(
+            json.dumps({"metrics": test_rows, "configs": serialize_configs(tuned_configs, classical_configs)}, indent=2),
+            encoding="utf-8",
+        )
+        save_adapted_plot(test_rows, args.output_dir / "synthetic_motion_adapted_metrics.png")
+        save_adaptation_report(
+            args.output_dir / "synthetic_motion_adaptation_report.md",
+            test_rows,
+            train_pack,
+            val_pack,
+            test_pack,
+            tuned_configs,
+            classical_configs,
+            args,
+        )
 
     for sequence, frames in all_video_frames.items():
         if frames:
@@ -126,6 +135,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--random-negatives-per-positive", type=float, default=1.6)
     parser.add_argument("--hard-negatives-per-frame", type=int, default=24)
     parser.add_argument("--augmentations", type=int, default=3)
+    parser.add_argument("--render-only", action="store_true", help="Reuse the saved fine-tuned QNN and tuned configs; only rebuild videos/previews.")
     return parser.parse_args()
 
 
@@ -325,11 +335,34 @@ def train_finetuned_qpp(train_pack: dict, val_pack: dict, args: argparse.Namespa
     return LearningDetector("QPP QNN2 fine-tuned", "lambda12", normalizer, model, "qnn")
 
 
+def load_finetuned_qpp(run_dir: Path) -> LearningDetector:
+    normalizer = FeatureNormalizer.load_json(run_dir / "normalizer.json")
+    model = DataReuploadingQNN2(n_layers=2, encoding="ryrz", entanglement="linear_01", readout="z_z_zz")
+    model.load_state_dict(torch.load(run_dir / "best_model.pt", map_location="cpu"))
+    model.eval()
+    return LearningDetector("QPP QNN2 fine-tuned", "lambda12", normalizer, model, "qnn")
+
+
 def train_motion_logistic(train_pack: dict) -> LearningDetector:
     normalizer = FeatureNormalizer()
     x_train = normalizer.fit_transform(train_pack["lambda12"], ["lambda1", "lambda2"])
     model = fit_logistic(x_train, train_pack["y"], seed=123)
     return LearningDetector("Logistic motion-tuned", "lambda12", normalizer, model, "logistic")
+
+
+def load_saved_configs(path: Path) -> tuple[dict[str, SelectionConfig], dict[str, dict]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    learning = {
+        name: SelectionConfig(
+            quantile=float(config["quantile"]),
+            nms_radius=float(config["nms_radius"]),
+            max_points=int(config["max_points"]),
+            min_threshold=None if config.get("min_threshold") is None else float(config["min_threshold"]),
+        )
+        for name, config in payload["configs"]["learning"].items()
+    }
+    classical = {name: dict(config) for name, config in payload["configs"]["classical"].items()}
+    return learning, classical
 
 
 def build_detector_specs(detectors: dict, qpp_ft: LearningDetector, logistic_motion: LearningDetector) -> dict[str, LearningDetector]:
@@ -564,14 +597,41 @@ def build_video_frames(
     frames: dict[str, list[np.ndarray]] = {"2d": [], "3d": []}
     for record in records:
         detections = {
+            "Logistic": None,
             "Harris tuned": detect_classical("Harris tuned", record.image, classical_configs["Harris tuned"]),
             "FAST tuned": detect_classical("FAST tuned", record.image, classical_configs["FAST tuned"]),
         }
-        for method in ["Logistic motion-tuned", "QPP QNN2 original", "QPP QNN2 fine-tuned"]:
+        for method, label in [("Logistic motion-tuned", "Logistic"), ("QPP QNN2 fine-tuned", "QNN-2bit")]:
             centers, scores = score_learning_frame(record.image, detector_specs[method], args)
-            detections[method] = select_adaptive_points(centers, scores, tuned_configs[method])
-        frames[record.sequence].append(make_comparison_frame(record, detections))
+            detections[label] = select_adaptive_points(centers, scores, tuned_configs[method])
+        detections = {
+            "Logistic": detections["Logistic"],
+            "Harris": detections["Harris tuned"],
+            "FAST": detections["FAST tuned"],
+            "QNN-2bit": detections["QNN-2bit"],
+        }
+        frames[record.sequence].append(make_adapted_comparison_frame(record, detections))
     return frames
+
+
+def make_adapted_comparison_frame(record: FrameRecord, detections: dict[str, np.ndarray]) -> np.ndarray:
+    fig, axes = plt.subplots(2, 2, figsize=(9.2, 8.0))
+    gt = np.asarray(record.gt, dtype=np.float32).reshape(-1, 2)
+    for ax, (title, points) in zip(axes.flat, detections.items()):
+        ax.imshow(record.image, cmap="gray", vmin=0.0, vmax=1.0)
+        if len(gt):
+            ax.scatter(gt[:, 0], gt[:, 1], s=36, facecolors="none", edgecolors="#39ff14", marker="o", linewidths=1.5)
+        points = np.asarray(points, dtype=np.float32).reshape(-1, 2)
+        if len(points):
+            ax.scatter(points[:, 0], points[:, 1], s=24, c="#ff2d2d", marker="x", linewidths=1.25)
+        ax.set_title(f"{title} ({len(points)})", fontsize=11)
+        ax.axis("off")
+    fig.suptitle(f"Synthetic {record.sequence.upper()} motion, frame {record.frame:02d}", fontsize=13)
+    fig.tight_layout()
+    fig.canvas.draw()
+    arr = np.asarray(fig.canvas.buffer_rgba(), dtype=np.uint8)[..., :3].copy()
+    plt.close(fig)
+    return arr
 
 
 def aggregate_counts_f1(tp: int | float, fp: int | float, fn: int | float) -> float:
@@ -617,7 +677,7 @@ def save_adapted_plot(rows: list[dict], path: Path) -> None:
             row = next((item for item in rows if item["sequence"] == sequence and item["method"] == method), None)
             if row is not None:
                 values.append(float(row["f1"]))
-                labels.append(method.replace(" tuned", "").replace("QPP QNN2 ", "QNN2 "))
+                labels.append(display_method_name(method))
         ax.bar(labels, values, color="#3b82f6")
         ax.set_ylim(0.0, 1.0)
         ax.set_title(f"{sequence.upper()} adapted test F1")
@@ -627,6 +687,14 @@ def save_adapted_plot(rows: list[dict], path: Path) -> None:
     fig.tight_layout()
     fig.savefig(path, dpi=180)
     plt.close(fig)
+
+
+def display_method_name(method: str) -> str:
+    if method == "QPP QNN2 fine-tuned":
+        return "QNN-2bit"
+    if method == "Logistic motion-tuned":
+        return "Logistic"
+    return method.replace(" tuned", "")
 
 
 def save_adaptation_report(
@@ -670,7 +738,7 @@ def save_adaptation_report(
     ]
     for row in rows:
         lines.append(
-            f"| {row['sequence']} | {row['method']} | {row['precision']:.4f} | {row['recall']:.4f} | {row['f1']:.4f} | {row['mean_detected_points']:.1f} |"
+            f"| {row['sequence']} | {display_method_name(row['method'])} | {row['precision']:.4f} | {row['recall']:.4f} | {row['f1']:.4f} | {row['mean_detected_points']:.1f} |"
         )
     lines.extend(
         [

@@ -180,6 +180,114 @@ Salt-and-pepper sweep 进一步显示，当噪声从 `0.00` 增加到 `0.15`：
 
 结论：该报告支持一个更谨慎但更有说服力的表述：**QNN 没有在 clean 或 PR-AUC 上全面超过 MLP，但在 fixed clean-threshold protocol 下，对 salt-and-pepper 这类脉冲噪声表现出更慢的 F1 退化。** 这与 QPP 主线中的噪声感知训练结果相互补充，说明 QNN 的潜在价值更集中在 resource-constrained / noisy front-end perception，而不是无噪声条件下替代所有 classical learner。
 
+### 5.3 5D / 8D QNN 实际线路结构
+
+早期 5D / 8D QNN 使用同一个 PennyLane `DataReuploadingQNN` 模块。它不是 QPP 少比特线路，而是 **feature-dimension-matched QNN**：输入特征有多少维，就使用多少个 qubit。
+
+实际配置为：
+
+| Experiment | Input Features | Qubits | Layers | Encoding | Entanglement | Readout |
+| --- | --- | ---: | ---: | --- | --- | --- |
+| Day2 5D QNN | `[Ix, Iy, lambda1, lambda2, R]` | 5 | 3 | `RyRz` | `ring` | all `Z` |
+| Improved 8D QNN | `[Ix, Iy, Ix2, Iy2, IxIy, lambda1, lambda2, R]` | 8 | 2 | `RyRz` + trainable scale | `ring` | all `Z` + neighbor `ZZ` |
+
+归一化和角度映射只在 train split 上拟合。对第 $$j$$ 维特征：
+
+$$
+z_j=\mathrm{clip}\left(\frac{x_j-\mu_j}{\sigma_j+\epsilon},-3,3\right),
+\qquad
+\phi_j=\frac{\pi}{3}z_j.
+$$
+
+如果启用 trainable input scaling，则每个 qubit 有两组可训练缩放参数 $$s^Y_j,s^Z_j$$；否则二者固定为 1。
+
+给定 $$d$$ 维输入，线路初态为：
+
+$$
+|\psi_0\rangle=|0\rangle^{\otimes d}.
+$$
+
+第 $$\ell$$ 个 data-reuploading layer 的输入编码为：
+
+$$
+U_{\mathrm{enc}}^{(\ell)}(\phi)
+=\prod_{j=0}^{d-1}
+R_Z\!\left(s^Z_j\phi_j\right)
+R_Y\!\left(s^Y_j\phi_j\right).
+$$
+
+注意这里每一层都会重新使用同一组 $$\phi$$，但不会重置量子态；它是在上一层量子态基础上继续作用。
+
+每层的可训练单比特旋转为：
+
+$$
+U_{\mathrm{var}}^{(\ell)}(\theta)
+=\prod_{j=0}^{d-1}
+R_Z\!\left(\theta_{\ell,j,2}\right)
+R_Y\!\left(\theta_{\ell,j,1}\right)
+R_Z\!\left(\theta_{\ell,j,0}\right).
+$$
+
+纠缠层按实验配置选择：
+
+$$
+U_{\mathrm{ent}}^{\mathrm{none}}=I,
+$$
+
+$$
+U_{\mathrm{ent}}^{\mathrm{linear}}
+=\prod_{j=0}^{d-2}\mathrm{CNOT}(j,j+1),
+$$
+
+$$
+U_{\mathrm{ent}}^{\mathrm{ring}}
+=\prod_{j=0}^{d-1}\mathrm{CNOT}\!\left(j,(j+1)\bmod d\right).
+$$
+
+完整量子态为：
+
+$$
+|\psi_L(x)\rangle
+=
+\left[
+\prod_{\ell=0}^{L-1}
+U_{\mathrm{ent}}\,
+U_{\mathrm{var}}^{(\ell)}(\theta)\,
+U_{\mathrm{enc}}^{(\ell)}(\phi)
+\right]
+|0\rangle^{\otimes d}.
+$$
+
+5D Day2 QNN 使用 all-Z readout：
+
+$$
+r(x)=
+\left[
+\langle Z_0\rangle,\langle Z_1\rangle,\ldots,\langle Z_{d-1}\rangle
+\right].
+$$
+
+8D improved QNN 使用 `all_zz` readout，额外加入 ring-neighbor 相关项：
+
+$$
+r(x)=
+\left[
+\langle Z_0\rangle,\ldots,\langle Z_{d-1}\rangle,
+\langle Z_0Z_1\rangle,\ldots,\langle Z_{d-2}Z_{d-1}\rangle,
+\langle Z_{d-1}Z_0\rangle
+\right].
+$$
+
+最后接一个经典线性头输出 logit 和 corner probability：
+
+$$
+\mathrm{logit}(x)=w^\top r(x)+b,
+\qquad
+p(y=1\mid x)=\sigma(\mathrm{logit}(x)).
+$$
+
+因此，5D / 8D QNN 的本质是：**把每个结构张量特征维度分配给一个 qubit，通过 data re-uploading 和 CNOT ring 建模特征间相互作用，再用 Pauli-Z / ZZ 期望值做二分类。**
+
 ## 6. QPP-Inspired 少比特 QNN 主线
 
 `qpp_corner_qnn_github_package` 提供了 1q/2q exact-statevector QNN、QPP 风格特征、配置化实验和 smoke tests。原包自带结果只有 smoke 级别，因此已经补跑当前项目 full split：4500 train / 1500 val / 1500 test。
@@ -313,6 +421,118 @@ normalized geometric features
 -> affine head
 -> corner probability
 ```
+
+以当前常用的 **2bit / 2-layer QPP QNN** 为例，输入不再是 5D/8D 全特征，而是：
+
+$$
+x=[\lambda_1,\lambda_2].
+$$
+
+先使用 train-only normalizer 和 angle map：
+
+$$
+z_i=\mathrm{clip}\left(\frac{x_i-\mu_i}{\sigma_i+\epsilon},-3,3\right),
+\qquad
+\phi_i=\frac{\pi}{3}z_i,\quad i\in\{0,1\}.
+$$
+
+其中 $$\phi_0$$ 对应 $$\lambda_1$$，$$\phi_1$$ 对应 $$\lambda_2$$。线路初态为：
+
+$$
+|\psi_0\rangle=|00\rangle.
+$$
+
+对第 $$\ell$$ 层，代码中的门顺序是：
+
+```text
+for q in {0, 1}:
+    RY_q(phi_q)
+    RZ_q(phi_q)
+
+for q in {0, 1}:
+    RZ_q(theta[l,q,0])
+    RY_q(theta[l,q,1])
+    RZ_q(theta[l,q,2])
+
+CNOT(0 -> 1)
+```
+
+如果写成算符乘积，即右侧先作用，则每层可以记为：
+
+$$
+U_{\mathrm{enc}}(\phi)
+=
+\prod_{q=0}^{1}
+R_Z^{(q)}(\phi_q)R_Y^{(q)}(\phi_q),
+$$
+
+$$
+U_{\mathrm{var}}^{(\ell)}(\theta)
+=
+\prod_{q=0}^{1}
+R_Z^{(q)}(\theta_{\ell,q,2})
+R_Y^{(q)}(\theta_{\ell,q,1})
+R_Z^{(q)}(\theta_{\ell,q,0}),
+$$
+
+$$
+U_{\mathrm{ent}}=\mathrm{CNOT}(0,1).
+$$
+
+因此 2-layer QPP QNN 的完整量子态是：
+
+$$
+|\psi_2(x)\rangle
+=
+\left[
+U_{\mathrm{ent}}U_{\mathrm{var}}^{(1)}U_{\mathrm{enc}}
+\right]
+\left[
+U_{\mathrm{ent}}U_{\mathrm{var}}^{(0)}U_{\mathrm{enc}}
+\right]
+|00\rangle.
+$$
+
+读出使用三个 Pauli expectation：
+
+$$
+r(x)=
+\left[
+\langle Z_0\rangle,
+\langle Z_1\rangle,
+\langle Z_0Z_1\rangle
+\right]_{\psi_2(x)}.
+$$
+
+最后的 classical affine head 为：
+
+$$
+\mathrm{logit}(x)=
+\alpha_0\langle Z_0\rangle
++\alpha_1\langle Z_1\rangle
++\alpha_2\langle Z_0Z_1\rangle
++\beta,
+$$
+
+$$
+p(y=1\mid x)=\sigma(\mathrm{logit}(x)).
+$$
+
+对应的纯文本线路可以写成：
+
+```text
+q0: |0> -- Ry(phi0) -- Rz(phi0) -- Rz(t000) -- Ry(t001) -- Rz(t002) --●--
+                                                                              |
+q1: |0> -- Ry(phi1) -- Rz(phi1) -- Rz(t010) -- Ry(t011) -- Rz(t012) --X--
+
+q0:      -- Ry(phi0) -- Rz(phi0) -- Rz(t100) -- Ry(t101) -- Rz(t102) --●-- measure Z0
+                                                                              |
+q1:      -- Ry(phi1) -- Rz(phi1) -- Rz(t110) -- Ry(t111) -- Rz(t112) --X-- measure Z1
+
+classical readout: [<Z0>, <Z1>, <Z0Z1>] -> linear head -> sigmoid probability
+```
+
+这与 5D/8D QNN 的区别很直接：5D/8D 让每个原始特征维度对应一个 qubit；QPP QNN 先把几何结构压缩成 1-2 个 QPP 特征，再用很少的 qubits 和浅层线路学习几何 cue 的非线性组合。
 
 纠缠模式含义：
 

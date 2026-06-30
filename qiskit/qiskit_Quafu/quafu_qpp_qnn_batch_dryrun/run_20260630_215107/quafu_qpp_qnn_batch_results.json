@@ -1,0 +1,290 @@
+{
+  "created_at": "2026-06-30T21:51:09",
+  "model": {
+    "name": "qpp_2q_lambda12_linear_L3_Z_ZZ",
+    "feature_set": "lambda12",
+    "n_qubits": 2,
+    "n_layers": 3,
+    "encoding": "ryrz",
+    "entanglement": "linear_01",
+    "readout": "z_z_zz",
+    "theta": [
+      [
+        [
+          0.5120954513549805,
+          0.25936442613601685,
+          0.048623740673065186
+        ],
+        [
+          0.12168067693710327,
+          -0.7518175840377808,
+          0.7989760637283325
+        ]
+      ],
+      [
+        [
+          -0.15672539174556732,
+          -0.02371535263955593,
+          -0.15216878056526184
+        ],
+        [
+          -0.2911463975906372,
+          -0.5240213871002197,
+          0.49349266290664673
+        ]
+      ],
+      [
+        [
+          -0.015621397644281387,
+          0.6927890181541443,
+          0.16573002934455872
+        ],
+        [
+          0.5262488126754761,
+          -0.3649025857448578,
+          0.03523566946387291
+        ]
+      ]
+    ],
+    "head_weight": [
+      -0.7785586714744568,
+      2.079404592514038,
+      1.6216249465942383
+    ],
+    "head_bias": 0.9510509967803955,
+    "normalizer": {
+      "feature_names": [
+        "lambda1",
+        "lambda2"
+      ],
+      "clip": 3.0,
+      "mean": [
+        1.2037864284740631,
+        0.4748739992054601
+      ],
+      "std": [
+        1.9432498635425994,
+        1.053883332853748
+      ]
+    }
+  },
+  "feature_names": [
+    "Ix",
+    "Iy",
+    "lambda1",
+    "lambda2",
+    "R"
+  ],
+  "args": {
+    "dataset": "C:\\Users\\JH\\Desktop\\AI\\quantum_corner_keypoint_detection-main\\quantum_corner_keypoint_detection-main\\data\\feature_dataset.npz",
+    "split": "test",
+    "selection": "mixed",
+    "n_per_label": 3,
+    "indices": "",
+    "chip": "Baihua",
+    "name_prefix": "QPP_QNN_batch",
+    "shots": 1024,
+    "compile": true,
+    "submit": false,
+    "poll_seconds": 60.0,
+    "sleep_between": 0.2,
+    "readme": "C:\\Users\\JH\\Desktop\\AI\\quantum_corner_keypoint_detection-main\\quantum_corner_keypoint_detection-main\\qiskit\\README.md",
+    "output_dir": "outputs\\quafu_qpp_qnn_batch_dryrun"
+  },
+  "token_source": "",
+  "summary": {
+    "total_selected": 6,
+    "finished": 0,
+    "failed_or_timeout": 6,
+    "exact_metrics_on_selected": {
+      "tp": 2,
+      "tn": 1,
+      "fp": 2,
+      "fn": 1,
+      "accuracy": 0.5,
+      "precision": 0.5,
+      "recall": 0.6666666666666666,
+      "f1": 0.5714285714285715
+    },
+    "hardware_metrics_on_finished": {},
+    "probability_delta_mean": null,
+    "probability_delta_mae": null,
+    "probability_delta_max_abs": null
+  },
+  "rows": [
+    {
+      "run_index": 1,
+      "sample_index": 308,
+      "label": 1,
+      "bucket": "confident",
+      "lambda1": 2.8587875366210938,
+      "lambda2": 1.2190934419631958,
+      "phi0": 0.891863233953719,
+      "phi1": 0.7394981528917969,
+      "exact_probability": 0.976621529868752,
+      "exact_pred": 1,
+      "chip": "Baihua",
+      "shots": 1024,
+      "compile": true,
+      "qasm_path": "outputs\\quafu_qpp_qnn_batch_dryrun\\run_20260630_215107\\qasm\\01_idx308_y1_confident_215108.qasm",
+      "submitted": false,
+      "task_id": "",
+      "initial_status": "",
+      "result_status": "",
+      "hardware_probability": "",
+      "hardware_pred": "",
+      "probability_delta": "",
+      "counts_00": "",
+      "counts_01": "",
+      "counts_10": "",
+      "counts_11": "",
+      "observables": "",
+      "error": ""
+    },
+    {
+      "run_index": 2,
+      "sample_index": 903,
+      "label": 1,
+      "bucket": "borderline",
+      "lambda1": 1.5532490015029907,
+      "lambda2": 0.3666728436946869,
+      "phi0": 0.1883218198423575,
+      "phi1": -0.1075147329455377,
+      "exact_probability": 0.4963488776820635,
+      "exact_pred": 0,
+      "chip": "Baihua",
+      "shots": 1024,
+      "compile": true,
+      "qasm_path": "outputs\\quafu_qpp_qnn_batch_dryrun\\run_20260630_215107\\qasm\\02_idx903_y1_borderline_215108.qasm",
+      "submitted": false,
+      "task_id": "",
+      "initial_status": "",
+      "result_status": "",
+      "hardware_probability": "",
+      "hardware_pred": "",
+      "probability_delta": "",
+      "counts_00": "",
+      "counts_01": "",
+      "counts_10": "",
+      "counts_11": "",
+      "observables": "",
+      "error": ""
+    },
+    {
+      "run_index": 3,
+      "sample_index": 641,
+      "label": 1,
+      "bucket": "borderline",
+      "lambda1": 5.8799052238464355,
+      "lambda2": 0.9524775743484497,
+      "phi0": 2.519912772663877,
+      "phi1": 0.47457368262781546,
+      "exact_probability": 0.5213464357318841,
+      "exact_pred": 1,
+      "chip": "Baihua",
+      "shots": 1024,
+      "compile": true,
+      "qasm_path": "outputs\\quafu_qpp_qnn_batch_dryrun\\run_20260630_215107\\qasm\\03_idx641_y1_borderline_215108.qasm",
+      "submitted": false,
+      "task_id": "",
+      "initial_status": "",
+      "result_status": "",
+      "hardware_probability": "",
+      "hardware_pred": "",
+      "probability_delta": "",
+      "counts_00": "",
+      "counts_01": "",
+      "counts_10": "",
+      "counts_11": "",
+      "observables": "",
+      "error": ""
+    },
+    {
+      "run_index": 4,
+      "sample_index": 462,
+      "label": 0,
+      "bucket": "confident",
+      "lambda1": 0.06929484009742737,
+      "lambda2": 0.0,
+      "phi0": -0.6113659573531768,
+      "phi1": -0.4718614229796379,
+      "exact_probability": 0.03406853073407073,
+      "exact_pred": 0,
+      "chip": "Baihua",
+      "shots": 1024,
+      "compile": true,
+      "qasm_path": "outputs\\quafu_qpp_qnn_batch_dryrun\\run_20260630_215107\\qasm\\04_idx462_y0_confident_215109.qasm",
+      "submitted": false,
+      "task_id": "",
+      "initial_status": "",
+      "result_status": "",
+      "hardware_probability": "",
+      "hardware_pred": "",
+      "probability_delta": "",
+      "counts_00": "",
+      "counts_01": "",
+      "counts_10": "",
+      "counts_11": "",
+      "observables": "",
+      "error": ""
+    },
+    {
+      "run_index": 5,
+      "sample_index": 1408,
+      "label": 0,
+      "bucket": "borderline",
+      "lambda1": 6.516662120819092,
+      "lambda2": 0.21108055114746094,
+      "phi0": 2.863054576364661,
+      "phi1": -0.2621199559917313,
+      "exact_probability": 0.5066415227197252,
+      "exact_pred": 1,
+      "chip": "Baihua",
+      "shots": 1024,
+      "compile": true,
+      "qasm_path": "outputs\\quafu_qpp_qnn_batch_dryrun\\run_20260630_215107\\qasm\\05_idx1408_y0_borderline_215109.qasm",
+      "submitted": false,
+      "task_id": "",
+      "initial_status": "",
+      "result_status": "",
+      "hardware_probability": "",
+      "hardware_pred": "",
+      "probability_delta": "",
+      "counts_00": "",
+      "counts_01": "",
+      "counts_10": "",
+      "counts_11": "",
+      "observables": "",
+      "error": ""
+    },
+    {
+      "run_index": 6,
+      "sample_index": 1264,
+      "label": 0,
+      "bucket": "borderline",
+      "lambda1": 1.844511866569519,
+      "lambda2": 0.4120425581932068,
+      "phi0": 0.34528041007538707,
+      "phi1": -0.06243284158220582,
+      "exact_probability": 0.5229010544593687,
+      "exact_pred": 1,
+      "chip": "Baihua",
+      "shots": 1024,
+      "compile": true,
+      "qasm_path": "outputs\\quafu_qpp_qnn_batch_dryrun\\run_20260630_215107\\qasm\\06_idx1264_y0_borderline_215109.qasm",
+      "submitted": false,
+      "task_id": "",
+      "initial_status": "",
+      "result_status": "",
+      "hardware_probability": "",
+      "hardware_pred": "",
+      "probability_delta": "",
+      "counts_00": "",
+      "counts_01": "",
+      "counts_10": "",
+      "counts_11": "",
+      "observables": "",
+      "error": ""
+    }
+  ]
+}

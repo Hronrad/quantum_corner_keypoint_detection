@@ -1,53 +1,66 @@
-# 面向角点与关键点检测的 QNN 模块
+# Few-Qubit Quantum Keypoint Detector
 
-本仓库实现一个 patch-level QNN 二分类器，用于判断候选中心点是否为
-corner/keypoint。第一版只负责 QNN 模型搭建、训练、验证和消融实验，不负责
-完整图像前处理。
+本仓库是 Quantum Hackathon 项目 **Few-Qubit Quantum Keypoint Detector** 的代码与实验结果目录。项目目标是用 QML / QNN 方法识别图像中的 salient keypoints，例如 corners 和 junctions，并评估其在 SLAM、AR/VR、robotics 等资源受限视觉前端中的可行性。
 
-换句话说，前处理模块需要先产出局部特征矩阵和标签；本仓库接收这些矩阵后训练：
+> **核心文档请优先阅读：** [docs/current_results_summary.md](docs/current_results_summary.md)  
+> 该文档是当前阶段的主报告，包含项目主线、指标解释、QPP 少比特 QNN、5D/8D QNN、经典 baseline、噪声鲁棒性、motion demo、线路结构公式、结果图表和下一步计划。README 只作为仓库导航与运行入口。
+
+当前主线已经从早期的 5D/8D feature-dimension-matched QNN，收敛到 **QPP-inspired few-qubit QNN**：
+
+```text
+image / patch
+-> structure-tensor features
+-> QPP compact features: lambda12, logS_eta, scalar_c4
+-> 1-2 qubit shallow data-reuploading QNN
+-> keypoint probability
+-> threshold / NMS / overlay demo
+```
+
+## Current Highlights
+
+- 经典 baseline：Harris / FAST / ORB / MLP 已完成，用作对照而不是项目重点。
+- Early QNN：5D / 8D PennyLane data-reuploading QNN 已完成训练、消融和噪声验证。
+- QPP QNN：1-2 qubit exact-statevector QNN 已完成 clean、noise-aware、少样本、结构消融、phase mapping 和 resource-limited 实验。
+- Qiskit port：当前 best-clean-F1 QPP QNN 已用 Qiskit 重写 forward circuit，可用于 finite-shot 和真实 NISQ backend 试跑。
+- Demo：已制作 real-data preview、dynamic noise robustness、synthetic 2D/3D motion benchmark 和 motion-domain adapted comparison videos。
+
+## Repository Map
 
 ```text
 .
-├── README.md
-├── .gitignore
-├── config.py
-├── generate_synthetic_data.py
-├── preprocessing.py
-├── qnn_circuit.py
-├── requirements.txt
-├── quantum_corner_keypoint_detection.pdf
-├── run_ablation.py
-├── train_qnn.py
+├── docs/
+│   ├── current_results_summary.md        # 当前阶段主报告，优先阅读
+│   ├── qnn_noise_robustness_report.md
+│   └── *.pdf
+├── qcd_data/                             # synthetic data, features, baselines, visualization
+├── qiskit/                               # QPP QNN Qiskit inference port
+├── qpp_corner_qnn_github_package/         # QPP few-qubit QNN reference package
+├── scripts/                              # reproducible experiment/demo pipelines
 ├── outputs/
-│   ├── day1_overlay_comparison.png
-│   ├── baseline_metrics.json
-│   ├── baseline_metrics.png
-│   ├── fast_overlay.png
-│   ├── harris_overlay.png
-│   ├── mlp_metrics.json
-│   ├── mlp_overlay.png
-│   ├── orb_overlay.png
-│   └── mlp_training_curve.png
-├── qcd_data/
-│   ├── __init__.py
-│   ├── baselines.py
-│   ├── features.py
-│   ├── synthetic.py
-│   └── visualize.py
-└── scripts/
-  ├── generate_synthetic_dataset.py
-  └── run_day1_baselines.py
+│   ├── README.md                         # organized output index
+│   ├── baselines/
+│   ├── day2/
+│   ├── qnn_improvement/
+│   ├── qpp/
+│   ├── demos/
+│   ├── motion/
+│   ├── summaries/
+│   └── runs/
+├── data/                                 # generated datasets; mostly local artifacts
+├── preprocessing.py
+├── qnn_circuit.py                         # 5D/8D PennyLane QNN
+├── train_qnn.py
+└── requirements.txt
 ```
 
-- `qcd_data/synthetic.py`: synthetic scene generation, label generation, patch extraction, and a PyTorch `Dataset` wrapper.
-- `qcd_data/features.py`: 9-D patch feature extraction for MLP/QNN-compatible inputs.
-- `qcd_data/baselines.py`: Harris, FAST, point matching metrics, and overlay plotting helpers. It uses OpenCV when available and NumPy fallbacks otherwise.
-- `qcd_data/visualize.py`: preview-grid rendering for generated samples.
-- `scripts/generate_synthetic_dataset.py`: command-line tool for writing image/label datasets to disk.
-- `scripts/run_day1_baselines.py`: one-command Day 1 pipeline for synthetic data, patches, features, Harris/FAST, MLP, and overlay figures.
-- `outputs/`: checked-in Day 1 baseline result figures and metrics.
-- `quantum_corner_keypoint_detection.pdf`: project paper/report artifact.
-- `data/`: generated datasets are written here by default and intentionally ignored by Git.
+重要结果入口：
+
+- Final clean-test comparison: `outputs/summaries/final_comparison_results.png`
+- QPP few-qubit results: `outputs/qpp/few_qubit/qpp_few_qubit_results.csv`
+- QPP structure ablation: `outputs/qpp/structure_ablation/qpp_structure_ablation_results.csv`
+- Noise-aware QPP result: `outputs/qpp/noise_aware/qpp_noise_aware_results.png`
+- QPP model/circuit diagrams: `outputs/qpp/diagrams/`
+- Motion adapted videos: `outputs/motion/adaptation/`
 
 ## Install
 
@@ -74,7 +87,7 @@ X_train, y_train, X_val, y_val -> FeatureNormalizer -> DataReuploadingQNN -> log
 pip install -r requirements.txt
 ```
 
-第一版依赖：
+主要依赖：
 
 - `PennyLane`：构建 data re-uploading VQC。
 - `PyTorch`：训练循环、loss、optimizer 和 checkpoint。
@@ -92,7 +105,7 @@ X_val:   shape (N_val, d)
 y_val:   shape (N_val,)
 ```
 
-第一版默认 `d=5`，特征顺序固定为：
+早期 5D QNN 默认 `d=5`，特征顺序固定为：
 
 ```text
 [Ix, Iy, lambda1, lambda2, R]
@@ -240,7 +253,7 @@ input:  Phi, shape (B, d)
 output: logits, shape (B,)
 ```
 
-第一版采用 `n_qubits = d`。例如默认五维特征对应 5 个 qubit。
+5D/8D PennyLane QNN 采用 `n_qubits = d`。例如默认五维特征对应 5 个 qubit。
 
 ### `train_qnn.py`
 
@@ -347,13 +360,13 @@ np.savez(
 
 ## 从 logits 到 keypoints
 
-本仓库第一版只输出 patch-level logits。真实 keypoint 检测阶段可以在外部做：
+基础 QNN 模块输出 patch-level logits。真实 keypoint 检测阶段可以在外部做：
 
 ```text
 logits -> sigmoid -> threshold -> NMS -> keypoint set
 ```
 
-NMS、空间均匀化、descriptor matching 和 SLAM 前端验证不在第一版范围内。
+NMS、空间均匀化、descriptor matching 和 SLAM 前端验证由后续 demo / motion pipeline 进一步处理。
 
 ## 实验记录建议
 
@@ -399,38 +412,52 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 .
 ├── README.md
 ├── .gitignore
-├── requirements.txt
-├── quantum_corner_keypoint_detection.pdf
-├── outputs/
-│   ├── day1_overlay_comparison.png
-│   ├── baseline_metrics.json
-│   ├── baseline_metrics.png
-│   ├── fast_overlay.png
-│   ├── harris_overlay.png
-│   ├── mlp_metrics.json
-│   ├── mlp_overlay.png
-│   ├── orb_overlay.png
-│   └── mlp_training_curve.png
+├── docs/
+│   ├── current_results_summary.md
+│   ├── qnn_noise_robustness_report.md
+│   └── *.pdf
 ├── qcd_data/
-│   ├── __init__.py
 │   ├── baselines.py
 │   ├── features.py
 │   ├── synthetic.py
 │   └── visualize.py
-└── scripts/
-    ├── generate_synthetic_dataset.py
-    └── run_day1_baselines.py
+├── qiskit/
+│   ├── README.md
+│   └── qpp_qnn_qiskit.py
+├── qpp_corner_qnn_github_package/
+├── scripts/
+│   ├── run_day2_pipeline.py
+│   ├── run_improvement_experiments.py
+│   ├── run_qpp_few_qubit_experiments.py
+│   ├── run_qpp_next_step_experiments.py
+│   ├── build_realdata_and_noise_demos.py
+│   └── run_motion_domain_adaptation.py
+├── outputs/
+│   ├── README.md
+│   ├── baselines/
+│   ├── day2/
+│   ├── qnn_improvement/
+│   ├── qpp/
+│   ├── demos/
+│   ├── motion/
+│   ├── summaries/
+│   └── runs/
+├── data/
+├── preprocessing.py
+├── qnn_circuit.py
+├── train_qnn.py
+├── requirements.txt
+└── quantum_corner_keypoint_detection.pdf
 ```
 
-- `qcd_data/synthetic.py`：合成场景生成、标签生成、patch 提取，以及 PyTorch `Dataset` 封装。
-- `qcd_data/features.py`：提取 9 维 patch 特征，供 MLP/QNN 使用同一输入接口。
-- `qcd_data/baselines.py`：Harris、FAST、点匹配指标和 overlay 绘图工具；有 OpenCV 时优先使用 OpenCV，没有时使用 NumPy 版本作为回退。
-- `qcd_data/visualize.py`：生成样本的预览图绘制工具。
-- `scripts/generate_synthetic_dataset.py`：将合成图像和标签写入磁盘的命令行脚本。
-- `scripts/run_day1_baselines.py`：一键运行第一天闭环，包括合成数据、patch、特征、Harris/FAST、MLP 和结果图。
-- `outputs/`：已纳入仓库的第一天 baseline 展示图和指标。
-- `quantum_corner_keypoint_detection.pdf`：项目论文/报告文件。
-- `data/`：默认的数据集输出目录，已被 Git 忽略。
+- `docs/current_results_summary.md`：当前阶段核心结果文档。
+- `outputs/README.md`：整理后的输出目录说明。
+- `outputs/qpp/`：QPP few-qubit QNN 结果、消融、噪声、相位映射和资源受限实验。
+- `outputs/motion/`：合成 2D/3D motion benchmark 与 domain-adapted demo。
+- `outputs/demos/`：真实图像 preview 和动态噪声视频。
+- `outputs/runs/`：训练 run 与本地 checkpoint。`*.pt` 默认不纳入 Git。
+- `qiskit/`：当前 QPP QNN 的 Qiskit inference port，可用于 finite-shot / NISQ backend。
+- `data/`：默认数据输出目录，多数为本地生成文件。
 
 ## 安装依赖
 

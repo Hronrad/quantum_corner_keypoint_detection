@@ -1,0 +1,32 @@
+{
+  "created_at": "2026-06-30T21:34:23",
+  "model": "qpp_2q_lambda12_linear_L3_Z_ZZ",
+  "chip": "Baihua",
+  "shots": 1024,
+  "compile": true,
+  "lambda12": [
+    3.1111812591552734,
+    1.647147297859192
+  ],
+  "phi": [
+    1.0278756393236332,
+    1.1648364571429326
+  ],
+  "sample": {
+    "source": "dataset",
+    "dataset": "C:\\Users\\JH\\Desktop\\AI\\quantum_corner_keypoint_detection-main\\quantum_corner_keypoint_detection-main\\data\\feature_dataset.npz",
+    "split": "test",
+    "sample_index": 1,
+    "label": 1,
+    "feature_names": [
+      "Ix",
+      "Iy",
+      "lambda1",
+      "lambda2",
+      "R"
+    ]
+  },
+  "statevector_probability": 0.9413869451119696,
+  "qasm_path": "outputs\\quafu_qpp_qnn_dryrun\\QPP_QNN_lambda12_L3_Baihua_20260630_213423.qasm",
+  "submitted": false
+}
