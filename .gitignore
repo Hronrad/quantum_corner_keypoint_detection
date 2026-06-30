@@ -35,6 +35,14 @@ outputs/*
 !outputs/noise_robustness_results.csv
 !outputs/noise_robustness_results.json
 !outputs/noise_robustness.png
+!outputs/feature_dim_noise_comparison.csv
+!outputs/feature_dim_noise_comparison.json
+!outputs/feature_dim_noise_comparison.png
+!outputs/feature_dim_noise_summary.md
+!outputs/saltpepper_sweep_5d8d.csv
+!outputs/saltpepper_sweep_5d8d.json
+!outputs/saltpepper_sweep_5d8d.png
+!outputs/saltpepper_sweep_5d8d_summary.md
 !outputs/improved_mlp_metrics.json
 !outputs/improved_mlp_training_curve.png
 !outputs/improved_qnn_metrics.json
@@ -68,6 +76,8 @@ outputs/*
 !outputs/qpp_resource_advantage_results.csv
 !outputs/qpp_resource_advantage_results.json
 !outputs/qpp_resource_advantage_results.png
+!outputs/qpp_qnn_model_structure.png
+!outputs/qpp_qnn_circuit_diagram.png
 !outputs/final_comparison_results.csv
 !outputs/final_comparison_results.png
 !outputs/realdata_preview_metrics.csv
