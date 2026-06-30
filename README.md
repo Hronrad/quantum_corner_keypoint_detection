@@ -181,9 +181,9 @@ python run_ablation.py --data data/synthetic_corner_data.npz --output-dir output
   ├── generate_synthetic_dataset.py
   └── run_day1_baselines.py
 ```
-- `outputs/day1_overlay_comparison.png`: GT/Harris/FAST/ORB/MLP comparison figure.
-- `outputs/baseline_metrics.json`: Precision/Recall/F1 for Harris, FAST, ORB, and MLP over all 300 synthetic images.
-- `outputs/baseline_metrics.png`: bar-chart summary of the same baseline metrics.
+- `outputs/baselines/day1/figures/day1_overlay_comparison.png`: GT/Harris/FAST/ORB/MLP comparison figure.
+- `outputs/baselines/day1/metrics/baseline_metrics.json`: Precision/Recall/F1 for Harris, FAST, ORB, and MLP over all 300 synthetic images.
+- `outputs/baselines/day1/figures/baseline_metrics.png`: bar-chart summary of the same baseline metrics.
 
 Current full-image baseline evaluation from the checked-in run:
 
@@ -195,8 +195,8 @@ ORB      0.0296      1.0000   0.0576
 MLP      0.1219      0.9067   0.2149
 ```
 
-![Day 1 overlay comparison](outputs/day1_overlay_comparison.png)
-![Day 1 baseline metrics](outputs/baseline_metrics.png)
+![Day 1 overlay comparison](outputs/baselines/day1/figures/day1_overlay_comparison.png)
+![Day 1 baseline metrics](outputs/baselines/day1/figures/baseline_metrics.png)
 
 典型用法：
 
@@ -511,15 +511,15 @@ python scripts/run_day1_baselines.py
 - `data/synthetic_images.npz`：图像、ground-truth 关键点和场景标签。
 - `data/patch_dataset.npz`：`X_patches [7500, 9, 9]`、`y [7500]`、`centers [7500, 2]`、`image_ids [7500]`。
 - `data/feature_dataset.npz`：`X_features [7500, 9]`、`y [7500]` 和特征名。
-- `outputs/harris_overlay.png`：单张样本上的 Harris 检测结果。
-- `outputs/fast_overlay.png`：单张样本上的 FAST 检测结果。
-- `outputs/orb_overlay.png`：单张样本上的 ORB 检测结果。
-- `outputs/mlp_overlay.png`：单张样本上的 MLP 检测结果。
-- `outputs/mlp_training_curve.png`：MLP 二元交叉熵训练曲线。
-- `outputs/mlp_metrics.json`：数据集摘要、验证指标和 overlay 点匹配指标。
-- `outputs/baseline_metrics.json`：300 张合成图上 Harris、FAST、ORB、MLP 的 Precision/Recall/F1。
-- `outputs/baseline_metrics.png`：上述指标的柱状图。
-- `outputs/day1_overlay_comparison.png`：GT/Harris/FAST/ORB/MLP 对比图。
+- `outputs/baselines/day1/overlays/harris_overlay.png`：单张样本上的 Harris 检测结果。
+- `outputs/baselines/day1/overlays/fast_overlay.png`：单张样本上的 FAST 检测结果。
+- `outputs/baselines/day1/overlays/orb_overlay.png`：单张样本上的 ORB 检测结果。
+- `outputs/baselines/day1/overlays/mlp_overlay.png`：单张样本上的 MLP 检测结果。
+- `outputs/baselines/day1/figures/mlp_training_curve.png`：MLP 二元交叉熵训练曲线。
+- `outputs/baselines/day1/metrics/mlp_metrics.json`：数据集摘要、验证指标和 overlay 点匹配指标。
+- `outputs/baselines/day1/metrics/baseline_metrics.json`：300 张合成图上 Harris、FAST、ORB、MLP 的 Precision/Recall/F1。
+- `outputs/baselines/day1/figures/baseline_metrics.png`：上述指标的柱状图。
+- `outputs/baselines/day1/figures/day1_overlay_comparison.png`：GT/Harris/FAST/ORB/MLP 对比图。
 
 当前已纳入仓库的全图 baseline 评估结果：
 
@@ -531,8 +531,8 @@ ORB      0.0296      1.0000   0.0576
 MLP      0.1219      0.9067   0.2149
 ```
 
-![第一天 overlay 对比图](outputs/day1_overlay_comparison.png)
-![第一天 baseline 指标](outputs/baseline_metrics.png)
+![第一天 overlay 对比图](outputs/baselines/day1/figures/day1_overlay_comparison.png)
+![第一天 baseline 指标](outputs/baselines/day1/figures/baseline_metrics.png)
 
 ## 第二天 QNN 与统一特征接口
 
@@ -560,17 +560,17 @@ MLP 和 QNN 使用同一份 `data/feature_dataset.npz`。文件包含：
 
 主要输出：
 
-- `outputs/day2_mlp_metrics.json`
-- `outputs/day2_mlp_training_curve.png`
-- `outputs/day2_qnn_metrics.json`
-- `outputs/day2_qnn_normalizer.npz`
-- `outputs/day2_qnn_training_curve.png`
-- `outputs/day2_qnn_overlay.png`
-- `outputs/day2_comparison_overlay.png`
-- `outputs/day2_pipeline_flow.png`
-- `outputs/day2_data_samples.png`
-- `outputs/day2_progress_summary.md`
-- `outputs/day2_result_table.csv`
+- `outputs/day2/metrics/day2_mlp_metrics.json`
+- `outputs/day2/figures/day2_mlp_training_curve.png`
+- `outputs/day2/metrics/day2_qnn_metrics.json`
+- `outputs/day2/artifacts/day2_qnn_normalizer.npz`
+- `outputs/day2/figures/day2_qnn_training_curve.png`
+- `outputs/day2/figures/day2_qnn_overlay.png`
+- `outputs/day2/figures/day2_comparison_overlay.png`
+- `outputs/day2/figures/day2_pipeline_flow.png`
+- `outputs/day2/figures/day2_data_samples.png`
+- `outputs/day2/reports/day2_progress_summary.md`
+- `outputs/day2/tables/day2_result_table.csv`
 
 当前 clean test / held-out image 结果：
 
@@ -583,8 +583,8 @@ MLP     same features  0.9347     0.9067  0.9205  0.9749
 QNN     same features  0.5238     0.6875  0.5946  0.4672
 ```
 
-![第二天 QNN 对比图](outputs/day2_comparison_overlay.png)
-![第二天 QNN 检测图](outputs/day2_qnn_overlay.png)
+![第二天 QNN 对比图](outputs/day2/figures/day2_comparison_overlay.png)
+![第二天 QNN 检测图](outputs/day2/figures/day2_qnn_overlay.png)
 
 ## QNN 提升实验
 
@@ -606,14 +606,14 @@ python scripts/run_improvement_experiments.py --seed 37
 
 主要产物：
 
-- `outputs/qnn_ablation_results.csv`
-- `outputs/qnn_ablation_results.png`
-- `outputs/noise_robustness_results.csv`
-- `outputs/noise_robustness.png`
-- `outputs/improved_qnn_metrics.json`
-- `outputs/improved_qnn_training_curve.png`
-- `outputs/improved_comparison_overlay.png`
-- `outputs/qnn_improvement_demo.html`
+- `outputs/qnn_improvement/ablation/qnn_ablation_results.csv`
+- `outputs/qnn_improvement/ablation/qnn_ablation_results.png`
+- `outputs/qnn_improvement/noise/noise_robustness_results.csv`
+- `outputs/qnn_improvement/noise/noise_robustness.png`
+- `outputs/qnn_improvement/metrics/improved_qnn_metrics.json`
+- `outputs/qnn_improvement/figures/improved_qnn_training_curve.png`
+- `outputs/qnn_improvement/figures/improved_comparison_overlay.png`
+- `outputs/qnn_improvement/demo/qnn_improvement_demo.html`
 
 当前改进主模型结果：
 
@@ -623,5 +623,5 @@ MLP, same 8-D features 0.9406     0.9500  0.9453  0.9756
 Improved QNN           0.6538     0.8500  0.7391  0.7909
 ```
 
-![QNN 消融结果](outputs/qnn_ablation_results.png)
-![噪声鲁棒性](outputs/noise_robustness.png)
+![QNN 消融结果](outputs/qnn_improvement/ablation/qnn_ablation_results.png)
+![噪声鲁棒性](outputs/qnn_improvement/noise/noise_robustness.png)

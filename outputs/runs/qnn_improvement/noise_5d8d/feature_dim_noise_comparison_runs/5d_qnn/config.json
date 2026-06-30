@@ -1,0 +1,31 @@
+{
+  "data_path": "/Users/hronrad/codes/py/quantum/quantum_corner_keypoint_detection/outputs/feature_dim_noise_comparison_runs/5d_qnn_train_subset.npz",
+  "qnn_config": {
+    "n_qubits": 5,
+    "n_layers": 3,
+    "encoding_type": "ryrz",
+    "entanglement": "ring",
+    "readout": "all",
+    "shots": null,
+    "trainable_input_scaling": false,
+    "init_scale": 0.01
+  },
+  "train_config": {
+    "learning_rate": 0.01,
+    "batch_size": 24,
+    "epochs": 14,
+    "seed": 37,
+    "output_dir": "outputs/default_run",
+    "clip_value": 3.0
+  },
+  "feature_indices": null,
+  "feature_names": [
+    "Ix",
+    "Iy",
+    "lambda1",
+    "lambda2",
+    "R"
+  ],
+  "pos_weight": 4.0,
+  "test_split_source": "test"
+}

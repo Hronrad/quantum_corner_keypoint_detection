@@ -76,7 +76,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--qnn-run-dir",
         type=Path,
-        default=ROOT / "outputs" / "qnn_improvement_improved_L2_ring_ZZ_scale_more_data",
+        default=ROOT
+        / "outputs"
+        / "runs"
+        / "qnn_improvement"
+        / "qnn_improvement_improved_L2_ring_ZZ_scale_more_data",
     )
     parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs")
     parser.add_argument("--noise-value", type=float, default=0.03)

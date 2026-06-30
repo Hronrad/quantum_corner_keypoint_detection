@@ -41,7 +41,7 @@ KITTI_SMALL_ZIP_URL = (
 
 def main() -> None:
     args = parse_args()
-    args.output_dir.mkdir(exist_ok=True)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
     real_dir = args.data_dir / "real_preview"
     real_dir.mkdir(parents=True, exist_ok=True)
 
@@ -54,13 +54,13 @@ def main() -> None:
         rows = run_real_preview(dataset_name, frames, args)
         real_rows.extend(rows)
 
-    write_rows(args.output_dir / "realdata_preview_metrics.csv", real_rows)
-    write_real_report(args.output_dir / "realdata_preview_report.md", real_rows, kitti_status)
+    write_rows(demo_output_path(args.output_dir, "realdata_preview_metrics.csv"), real_rows)
+    write_real_report(demo_output_path(args.output_dir, "realdata_preview_report.md"), real_rows, kitti_status)
     build_noise_demo(args)
     print("Demo build complete.")
-    print(args.output_dir / "realdata_preview_report.md")
-    print(args.output_dir / "realdata_hpatches_qpp_overlay.mp4")
-    print(args.output_dir / "dynamic_noise_robustness_demo.mp4")
+    print(demo_output_path(args.output_dir, "realdata_preview_report.md"))
+    print(demo_output_path(args.output_dir, "realdata_hpatches_qpp_overlay.mp4"))
+    print(demo_output_path(args.output_dir, "dynamic_noise_robustness_demo.mp4"))
 
 
 def parse_args() -> argparse.Namespace:
@@ -76,6 +76,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--download-kitti", action="store_true", help="Download the 459MB official KITTI raw mini drive zip.")
     parser.add_argument("--kitti-max-frames", type=int, default=72)
     return parser.parse_args()
+
+
+def demo_output_path(base: Path, filename: str) -> Path:
+    if filename == "realdata_preview_metrics.csv":
+        return base / "demos" / "realdata" / "metrics" / filename
+    if filename in {"realdata_preview_report.md", "real_dataset_samples_report.md"}:
+        return base / "demos" / "realdata" / "reports" / filename
+    if filename.startswith("real_dataset_samples"):
+        return base / "demos" / "realdata" / "samples" / filename
+    if filename.startswith("realdata_hpatches_example_sequence_"):
+        return base / "demos" / "realdata" / "frames" / "hpatches" / filename
+    if filename.startswith("realdata_kitti_drive_0001_"):
+        return base / "demos" / "realdata" / "frames" / "kitti" / filename
+    if filename.startswith("realdata_") and filename.endswith((".mp4", ".gif")):
+        return base / "demos" / "realdata" / "videos" / filename
+    if filename == "dynamic_noise_demo_metrics.csv":
+        return base / "demos" / "dynamic_noise" / "metrics" / filename
+    if filename.startswith("dynamic_noise_") and filename.endswith((".mp4", ".gif")):
+        return base / "demos" / "dynamic_noise" / "videos" / filename
+    if filename.startswith("dynamic_noise_") and filename.endswith(".png"):
+        return base / "demos" / "dynamic_noise" / "figures" / filename
+    return base / filename
 
 
 def prepare_hpatches_frames(target_dir: Path) -> list[Path]:
@@ -150,7 +172,7 @@ def run_real_preview(dataset_name: str, frame_paths: list[Path], args: argparse.
         qpp_points, qpp_scores = qpp_points_for_image(image, model, normalizer, args)
         overlay = make_real_overlay_frame(image, dataset_name, index, harris, fast, orb, qpp_points)
         overlay_frames.append(overlay)
-        frame_out = args.output_dir / f"realdata_{slug(dataset_name)}_{index:02d}_overlay.png"
+        frame_out = demo_output_path(args.output_dir, f"realdata_{slug(dataset_name)}_{index:02d}_overlay.png")
         Image.fromarray(overlay).save(frame_out)
         rows.append(
             {
@@ -166,7 +188,7 @@ def run_real_preview(dataset_name: str, frame_paths: list[Path], args: argparse.
         )
     if overlay_frames:
         video_name = "realdata_hpatches_qpp_overlay.mp4" if "HPatches" in dataset_name else "realdata_kitti_qpp_overlay.mp4"
-        write_video(args.output_dir / video_name, overlay_frames, fps=2)
+        write_video(demo_output_path(args.output_dir, video_name), overlay_frames, fps=2)
     return rows
 
 
@@ -191,7 +213,7 @@ def run_kitti_final_preview(dataset_name: str, frame_paths: list[Path], args: ar
             gt_xy=None,
         )
         overlay_frames.append(overlay)
-        frame_out = args.output_dir / f"realdata_{slug(dataset_name)}_{index:02d}_overlay.png"
+        frame_out = demo_output_path(args.output_dir, f"realdata_{slug(dataset_name)}_{index:02d}_overlay.png")
         Image.fromarray(overlay).save(frame_out)
         rows.append(
             {
@@ -208,7 +230,7 @@ def run_kitti_final_preview(dataset_name: str, frame_paths: list[Path], args: ar
             }
         )
     if overlay_frames:
-        write_video(args.output_dir / "realdata_kitti_qpp_overlay.mp4", overlay_frames, fps=2)
+        write_video(demo_output_path(args.output_dir, "realdata_kitti_qpp_overlay.mp4"), overlay_frames, fps=2)
     return rows
 
 
@@ -219,7 +241,7 @@ def load_qpp_model(args: argparse.Namespace):
     normalizer = FeatureNormalizer()
     normalizer.fit_transform(qpp_train["lambda12"], ["lambda1", "lambda2"])
     model = DataReuploadingQNN2(n_layers=2, encoding="ryrz", entanglement="linear_01", readout="z_z_zz")
-    state_path = ROOT / "outputs" / "qpp_2q_lambda12_L2_run" / "best_model.pt"
+    state_path = ROOT / "outputs" / "runs" / "qpp" / "few_qubit" / "qpp_2q_lambda12_L2_run" / "best_model.pt"
     state = torch.load(state_path, map_location="cpu")
     model.load_state_dict(state)
     model.eval()
@@ -235,13 +257,23 @@ def load_noise_qpp_detectors() -> dict[str, dict]:
     normalizer_1q = FeatureNormalizer()
     normalizer_1q.fit_transform(qpp_train["scalar_c4"], ["logS_plus_4_eta"])
     model_1q = DataReuploadingQNN1(n_layers=2, encoding="ryrz")
-    model_1q.load_state_dict(torch.load(ROOT / "outputs" / "qpp_1q_scalar_c4_L2_run" / "best_model.pt", map_location="cpu"))
+    model_1q.load_state_dict(
+        torch.load(
+            ROOT / "outputs" / "runs" / "qpp" / "few_qubit" / "qpp_1q_scalar_c4_L2_run" / "best_model.pt",
+            map_location="cpu",
+        )
+    )
     model_1q.eval()
 
     normalizer_2q = FeatureNormalizer()
     normalizer_2q.fit_transform(qpp_train["lambda12"], ["lambda1", "lambda2"])
     model_2q = DataReuploadingQNN2(n_layers=2, encoding="ryrz", entanglement="linear_01", readout="z_z_zz")
-    model_2q.load_state_dict(torch.load(ROOT / "outputs" / "qpp_2q_lambda12_L2_run" / "best_model.pt", map_location="cpu"))
+    model_2q.load_state_dict(
+        torch.load(
+            ROOT / "outputs" / "runs" / "qpp" / "few_qubit" / "qpp_2q_lambda12_L2_run" / "best_model.pt",
+            map_location="cpu",
+        )
+    )
     model_2q.eval()
 
     return {
@@ -270,7 +302,7 @@ def load_noise_qpp_detectors() -> dict[str, dict]:
 
 
 def read_qpp_thresholds() -> dict[str, float]:
-    path = ROOT / "outputs" / "qpp_few_qubit_results.csv"
+    path = ROOT / "outputs" / "qpp" / "few_qubit" / "qpp_few_qubit_results.csv"
     thresholds: dict[str, float] = {}
     with path.open(encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle):
@@ -475,10 +507,12 @@ def build_noise_demo(args: argparse.Namespace) -> None:
                 "qpp_2q_nearest_gt": nearest_distance(qpp_2q_points, keypoint),
             }
         )
-    write_rows(args.output_dir / "dynamic_noise_demo_metrics.csv", rows)
-    write_video(args.output_dir / "dynamic_noise_robustness_demo.mp4", frames, fps=3)
+    write_rows(demo_output_path(args.output_dir, "dynamic_noise_demo_metrics.csv"), rows)
+    write_video(demo_output_path(args.output_dir, "dynamic_noise_robustness_demo.mp4"), frames, fps=3)
     if frames:
-        Image.fromarray(frames[min(4, len(frames) - 1)]).save(args.output_dir / "dynamic_noise_robustness_demo_preview.png")
+        Image.fromarray(frames[min(4, len(frames) - 1)]).save(
+            demo_output_path(args.output_dir, "dynamic_noise_robustness_demo_preview.png")
+        )
 
 
 def gradual_noise_frame(
@@ -603,7 +637,7 @@ def fig_to_rgb(fig) -> np.ndarray:
 def write_video(path: Path, frames: list[np.ndarray], fps: int) -> None:
     if not frames:
         return
-    path.parent.mkdir(exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     if shutil.which("ffmpeg"):
         write_video_ffmpeg(path, frames, fps)
         return
@@ -678,7 +712,7 @@ def download_file(url: str, path: Path) -> None:
 
 
 def write_rows(path: Path, rows: list[dict]) -> None:
-    path.parent.mkdir(exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
         path.write_text("", encoding="utf-8")
         return
@@ -709,13 +743,13 @@ def write_real_report(path: Path, rows: list[dict], kitti_status: dict) -> None:
         "",
         "## Outputs",
         "",
-        "- `outputs/realdata_hpatches_qpp_overlay.mp4`",
-        "- `outputs/realdata_hpatches_qpp_overlay.gif`",
-        "- `outputs/realdata_kitti_qpp_overlay.mp4`",
-        "- `outputs/realdata_kitti_qpp_overlay.gif`",
-        "- `outputs/dynamic_noise_robustness_demo.mp4`",
-        "- `outputs/dynamic_noise_robustness_demo.gif`",
-        "- `outputs/dynamic_noise_robustness_demo_preview.png`",
+        "- `outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.mp4`",
+        "- `outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.gif`",
+        "- `outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.mp4`",
+        "- `outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.gif`",
+        "- `outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.mp4`",
+        "- `outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.gif`",
+        "- `outputs/demos/dynamic_noise/figures/dynamic_noise_robustness_demo_preview.png`",
         "",
         "Videos are encoded as H.264/yuv420p for browser and presentation compatibility; GIF files are fallback previews.",
         "",

@@ -79,7 +79,7 @@ def main() -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate moving 2D/3D geometric sequences and benchmark keypoint detectors.")
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "motion" / "benchmark")
     parser.add_argument("--frames", type=int, default=40)
     parser.add_argument("--size", type=int, default=192)
     parser.add_argument("--seed", type=int, default=73)
@@ -410,11 +410,11 @@ def save_report(path: Path, rows: list[dict], records: list[FrameRecord], args: 
         "## Outputs",
         "",
         "- `data/synthetic_motion_sequences.npz`",
-        "- `outputs/synthetic_motion_metrics.csv`",
-        "- `outputs/synthetic_motion_frame_metrics.csv`",
-        "- `outputs/synthetic_motion_metrics.png`",
-        "- `outputs/synthetic_motion_2d_comparison.mp4`",
-        "- `outputs/synthetic_motion_3d_comparison.mp4`",
+        "- `outputs/motion/benchmark/synthetic_motion_metrics.csv`",
+        "- `outputs/motion/benchmark/synthetic_motion_frame_metrics.csv`",
+        "- `outputs/motion/benchmark/synthetic_motion_metrics.png`",
+        "- `outputs/motion/benchmark/synthetic_motion_2d_comparison.mp4`",
+        "- `outputs/motion/benchmark/synthetic_motion_3d_comparison.mp4`",
         "",
         "## Aggregate Results",
         "",

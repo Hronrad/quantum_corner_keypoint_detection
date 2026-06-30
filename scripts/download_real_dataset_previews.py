@@ -37,21 +37,26 @@ def main() -> None:
     euroc = prepare_euroc_previews(args.data_dir / "euroc")
     tum = prepare_tum(args.data_dir / "tum", max_frames=args.tum_frames)
 
-    save_montage(oxford, "Oxford VGG Affine Covariant Features", args.output_dir / "real_dataset_samples_oxford.png", cols=3)
-    save_montage(euroc, "EuRoC MAV official preview", args.output_dir / "real_dataset_samples_euroc.png", cols=4)
-    save_montage(tum, "TUM RGB-D Freiburg1 XYZ RGB frames", args.output_dir / "real_dataset_samples_tum.png", cols=3)
-    save_combined_preview(oxford, euroc, tum, args.output_dir / "real_dataset_samples.png")
-    write_report(args.output_dir / "real_dataset_samples_report.md", oxford, euroc, tum)
+    samples_dir = args.output_dir / "samples"
+    reports_dir = args.output_dir / "reports"
+    samples_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    save_montage(oxford, "Oxford VGG Affine Covariant Features", samples_dir / "real_dataset_samples_oxford.png", cols=3)
+    save_montage(euroc, "EuRoC MAV official preview", samples_dir / "real_dataset_samples_euroc.png", cols=4)
+    save_montage(tum, "TUM RGB-D Freiburg1 XYZ RGB frames", samples_dir / "real_dataset_samples_tum.png", cols=3)
+    save_combined_preview(oxford, euroc, tum, samples_dir / "real_dataset_samples.png")
+    write_report(reports_dir / "real_dataset_samples_report.md", oxford, euroc, tum)
 
     print("Dataset previews ready.")
-    print(args.output_dir / "real_dataset_samples.png")
-    print(args.output_dir / "real_dataset_samples_report.md")
+    print(samples_dir / "real_dataset_samples.png")
+    print(reports_dir / "real_dataset_samples_report.md")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Download small real-dataset previews for keypoint detection slides.")
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data" / "real_preview")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "demos" / "realdata")
     parser.add_argument("--oxford-per-sequence", type=int, default=3)
     parser.add_argument("--tum-frames", type=int, default=6)
     return parser.parse_args()
@@ -210,10 +215,10 @@ def write_report(path: Path, oxford: list[tuple[str, Path]], euroc: list[tuple[s
         "",
         "## Outputs",
         "",
-        "- `outputs/real_dataset_samples.png`",
-        "- `outputs/real_dataset_samples_oxford.png`",
-        "- `outputs/real_dataset_samples_euroc.png`",
-        "- `outputs/real_dataset_samples_tum.png`",
+        "- `outputs/demos/realdata/samples/real_dataset_samples.png`",
+        "- `outputs/demos/realdata/samples/real_dataset_samples_oxford.png`",
+        "- `outputs/demos/realdata/samples/real_dataset_samples_euroc.png`",
+        "- `outputs/demos/realdata/samples/real_dataset_samples_tum.png`",
         "",
         "## Counts",
         "",

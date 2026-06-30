@@ -55,7 +55,8 @@ def main() -> None:
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     args.data_dir.mkdir(parents=True, exist_ok=True)
-    run_dir = args.output_dir / "motion_domain_adaptation_qpp_run"
+    run_dir = ROOT / "outputs" / "runs" / "motion_adaptation" / "motion_domain_adaptation_qpp_run"
+    run_dir.parent.mkdir(parents=True, exist_ok=True)
     run_dir.mkdir(parents=True, exist_ok=True)
 
     records = build_dataset(args)
@@ -109,7 +110,7 @@ def main() -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fine-tune QPP QNN on synthetic motion data and tune adaptive threshold/NMS.")
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "motion" / "adaptation")
     parser.add_argument("--frames", type=int, default=40)
     parser.add_argument("--size", type=int, default=192)
     parser.add_argument("--seed", type=int, default=91)
@@ -295,7 +296,7 @@ def train_finetuned_qpp(train_pack: dict, val_pack: dict, args: argparse.Namespa
     angles_val = normalizer.to_angles(x_val)
 
     model = DataReuploadingQNN2(n_layers=2, encoding="ryrz", entanglement="linear_01", readout="z_z_zz")
-    state_path = ROOT / "outputs" / "qpp_2q_lambda12_L2_run" / "best_model.pt"
+    state_path = ROOT / "outputs" / "runs" / "qpp" / "few_qubit" / "qpp_2q_lambda12_L2_run" / "best_model.pt"
     if state_path.exists():
         model.load_state_dict(torch.load(state_path, map_location="cpu"))
     model, history = train_torch_classifier(

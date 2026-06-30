@@ -2,7 +2,7 @@
 
 This file mirrors the best clean-test-F1 PyTorch exact differentiable
 statevector model used in
-``outputs/qpp_next_struct_lambda12_linear_L3/best_model.pt``:
+``outputs/runs/qpp/structure_ablation/qpp_next_struct_lambda12_linear_L3/best_model.pt``:
 
     feature set: lambda12 = [lambda1, lambda2]
     qubits:      2
