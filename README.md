@@ -4,6 +4,8 @@
 
 > **核心文档请优先阅读：** [docs/current_results_summary.md](docs/current_results_summary.md)  
 > 该文档是当前阶段的主报告，包含项目主线、指标解释、QPP 少比特 QNN、5D/8D QNN、经典 baseline、噪声鲁棒性、motion demo、线路结构公式、结果图表和下一步计划。README 只作为仓库导航与运行入口。
+>
+> English summary: [docs/current_results_summary_en.md](docs/current_results_summary_en.md)
 
 当前主线已经从早期的 5D/8D feature-dimension-matched QNN，收敛到 **QPP-inspired few-qubit QNN**：
 
@@ -61,6 +63,30 @@ image / patch
 - Noise-aware QPP result: `outputs/qpp/noise_aware/qpp_noise_aware_results.png`
 - QPP model/circuit diagrams: `outputs/qpp/diagrams/`
 - Motion adapted videos: `outputs/motion/adaptation/`
+
+## Results Showcase
+
+Final clean-test comparison after removing early exploratory QNN / threshold / logistic reference bars:
+
+![Final clean-test comparison](outputs/summaries/final_comparison_results.png)
+
+Noise-aware QPP QNN training improves salt-and-pepper robustness:
+
+![Noise-aware QPP QNN](outputs/qpp/noise_aware/qpp_noise_aware_results.png)
+
+QPP few-qubit model and circuit structure:
+
+![QPP QNN model structure](outputs/qpp/diagrams/qpp_qnn_model_structure.png)
+
+![QPP QNN circuit diagram](outputs/qpp/diagrams/qpp_qnn_circuit_diagram.png)
+
+Demo GIFs:
+
+- KITTI real-data preview, 72 frames compressed to about 10 seconds: [realdata_kitti_qpp_overlay.gif](outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.gif)
+- HPatches real-data preview: [realdata_hpatches_qpp_overlay.gif](outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.gif)
+- Dynamic noise robustness demo: [dynamic_noise_robustness_demo.gif](outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.gif)
+- Synthetic 2D motion adapted comparison: [synthetic_motion_2d_adapted_comparison.gif](outputs/motion/adaptation/synthetic_motion_2d_adapted_comparison.gif)
+- Synthetic 3D motion adapted comparison: [synthetic_motion_3d_adapted_comparison.gif](outputs/motion/adaptation/synthetic_motion_3d_adapted_comparison.gif)
 
 ## Install
 

@@ -230,8 +230,16 @@ def run_kitti_final_preview(dataset_name: str, frame_paths: list[Path], args: ar
             }
         )
     if overlay_frames:
-        write_video(demo_output_path(args.output_dir, "realdata_kitti_qpp_overlay.mp4"), overlay_frames, fps=2)
+        write_video(
+            demo_output_path(args.output_dir, "realdata_kitti_qpp_overlay.mp4"),
+            overlay_frames,
+            fps=kitti_demo_fps(len(overlay_frames)),
+        )
     return rows
+
+
+def kitti_demo_fps(frame_count: int, target_seconds: float = 10.0) -> float:
+    return max(1.0, float(frame_count) / float(target_seconds))
 
 
 def load_qpp_model(args: argparse.Namespace):
@@ -634,7 +642,7 @@ def fig_to_rgb(fig) -> np.ndarray:
     return arr
 
 
-def write_video(path: Path, frames: list[np.ndarray], fps: int) -> None:
+def write_video(path: Path, frames: list[np.ndarray], fps: float) -> None:
     if not frames:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -650,7 +658,7 @@ def write_video(path: Path, frames: list[np.ndarray], fps: int) -> None:
     writer.release()
 
 
-def write_video_ffmpeg(path: Path, frames: list[np.ndarray], fps: int) -> None:
+def write_video_ffmpeg(path: Path, frames: list[np.ndarray], fps: float) -> None:
     frame_dir = path.parent / f".{path.stem}_frames"
     if frame_dir.exists():
         shutil.rmtree(frame_dir)
@@ -692,7 +700,7 @@ def write_video_ffmpeg(path: Path, frames: list[np.ndarray], fps: int) -> None:
             "-i",
             str(path),
             "-vf",
-            "fps=2,scale=1280:-1:flags=lanczos",
+            f"fps={fps},scale=1280:-1:flags=lanczos",
             str(gif_path),
         ]
         subprocess.run(gif_cmd, check=True)
@@ -752,6 +760,7 @@ def write_real_report(path: Path, rows: list[dict], kitti_status: dict) -> None:
         "- `outputs/demos/dynamic_noise/figures/dynamic_noise_robustness_demo_preview.png`",
         "",
         "Videos are encoded as H.264/yuv420p for browser and presentation compatibility; GIF files are fallback previews.",
+        "The KITTI preview is encoded from 72 frames at 7.2 fps, so it plays in about 10 seconds.",
         "",
     ]
     for dataset in datasets:

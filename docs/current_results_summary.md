@@ -686,7 +686,7 @@ $$
 | Demo | Source | 内容 | 输出 |
 | --- | --- | --- | --- |
 | Real-data preview | HPatches example sequence | Harris / FAST / ORB / QPP QNN overlay，6 帧 | `outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.mp4` / `.gif` |
-| Real-data preview | KITTI drive 0001 | 2x2 上下排布：Logistic / Harris / FAST / 2-qubit QNN，72 帧，2 fps，约 36 秒；各算法检测点统一红色标注 | `outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.mp4` / `.gif` |
+| Real-data preview | KITTI drive 0001 | 2x2 上下排布：Logistic / Harris / FAST / 2-qubit QNN，72 帧，7.2 fps，约 10 秒；各算法检测点统一红色标注 | `outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.mp4` / `.gif` |
 | Dynamic noise robustness | synthetic held-out test image | 同一图像从 clean 逐渐加入 Gaussian noise，Logistic / FAST / 1-qubit QNN / 2-qubit QNN 对比，GT 以绿色圆圈叠加 | `outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.mp4` / `.gif` |
 | Real dataset samples | Oxford VGG / EuRoC MAV / TUM RGB-D | 下载小批真实数据样例并生成拼图，用于说明真实图像大致外观 | `outputs/demos/realdata/samples/real_dataset_samples.png` |
 | Synthetic motion benchmark | generated 2D / 3D geometry | 2D 几何体旋转/平移/缩放与 3D 线框 cube/pyramid 投影运动，评估 Harris / FAST / ORB / Logistic / QPP QNN2 | `outputs/motion/benchmark/synthetic_motion_2d_comparison.mp4` / `outputs/motion/benchmark/synthetic_motion_3d_comparison.mp4` |

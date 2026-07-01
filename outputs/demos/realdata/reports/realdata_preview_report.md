@@ -11,15 +11,16 @@ Metrics are therefore descriptive counts and QPP score summaries, not precision/
 
 ## Outputs
 
-- `outputs/realdata_hpatches_qpp_overlay.mp4`
-- `outputs/realdata_hpatches_qpp_overlay.gif`
-- `outputs/realdata_kitti_qpp_overlay.mp4`
-- `outputs/realdata_kitti_qpp_overlay.gif`
-- `outputs/dynamic_noise_robustness_demo.mp4`
-- `outputs/dynamic_noise_robustness_demo.gif`
-- `outputs/dynamic_noise_robustness_demo_preview.png`
+- `outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.mp4`
+- `outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.gif`
+- `outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.mp4`
+- `outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.gif`
+- `outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.mp4`
+- `outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.gif`
+- `outputs/demos/dynamic_noise/figures/dynamic_noise_robustness_demo_preview.png`
 
 Videos are encoded as H.264/yuv420p for browser and presentation compatibility; GIF files are fallback previews.
+The KITTI preview is encoded from 72 frames at 7.2 fps, so it plays in about 10 seconds.
 
 ## HPatches example sequence
 
