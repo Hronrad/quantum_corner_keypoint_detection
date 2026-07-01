@@ -82,11 +82,25 @@ QPP few-qubit model and circuit structure:
 
 Demo GIFs:
 
-- KITTI real-data preview, 72 frames compressed to about 10 seconds: [realdata_kitti_qpp_overlay.gif](outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.gif)
-- HPatches real-data preview: [realdata_hpatches_qpp_overlay.gif](outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.gif)
-- Dynamic noise robustness demo: [dynamic_noise_robustness_demo.gif](outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.gif)
-- Synthetic 2D motion adapted comparison: [synthetic_motion_2d_adapted_comparison.gif](outputs/motion/adaptation/synthetic_motion_2d_adapted_comparison.gif)
-- Synthetic 3D motion adapted comparison: [synthetic_motion_3d_adapted_comparison.gif](outputs/motion/adaptation/synthetic_motion_3d_adapted_comparison.gif)
+KITTI real-data preview, 72 frames compressed to about 10 seconds:
+
+![KITTI real-data preview](outputs/demos/realdata/videos/realdata_kitti_qpp_overlay.gif)
+
+HPatches real-data preview:
+
+![HPatches real-data preview](outputs/demos/realdata/videos/realdata_hpatches_qpp_overlay.gif)
+
+Dynamic noise robustness demo:
+
+![Dynamic noise robustness demo](outputs/demos/dynamic_noise/videos/dynamic_noise_robustness_demo.gif)
+
+Synthetic 2D motion adapted comparison:
+
+![Synthetic 2D motion adapted comparison](outputs/motion/adaptation/synthetic_motion_2d_adapted_comparison.gif)
+
+Synthetic 3D motion adapted comparison:
+
+![Synthetic 3D motion adapted comparison](outputs/motion/adaptation/synthetic_motion_3d_adapted_comparison.gif)
 
 ## Install
 
