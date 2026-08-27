@@ -93,6 +93,22 @@ if torch is not None:
         return probs @ (bit0 * bit1)
 
 
+    def expectation_pauli2(state, pauli0: str, pauli1: str):
+        """Return a batched expectation of a two-qubit Pauli product."""
+
+        matrices = {
+            "I": torch.eye(2, dtype=torch.complex64, device=state.device),
+            "X": torch.tensor([[0, 1], [1, 0]], dtype=torch.complex64, device=state.device),
+            "Y": torch.tensor([[0, -1j], [1j, 0]], dtype=torch.complex64, device=state.device),
+            "Z": torch.tensor([[1, 0], [0, -1]], dtype=torch.complex64, device=state.device),
+        }
+        try:
+            operator = torch.kron(matrices[pauli0], matrices[pauli1])
+        except KeyError as exc:
+            raise ValueError(f"Unknown Pauli label: {exc.args[0]}") from exc
+        return torch.einsum("bi,ij,bj->b", state.conj(), operator, state).real
+
+
     def zero_state(batch_size: int, n_qubits: int, device):
         state = torch.zeros((batch_size, 2**n_qubits), dtype=torch.complex64, device=device)
         state[:, 0] = 1.0 + 0.0j
@@ -230,6 +246,102 @@ if torch is not None:
             z = self.observables(x)
             return self.head(z).squeeze(-1)
 
+
+    class SchmidtQPPQNN2(nn.Module):
+        """Explicit two-qubit Schmidt-spectrum QNN.
+
+        The non-negative ordered spectrum ``[lambda1, lambda2]`` is normalized
+        to ``mu`` and prepared exactly as
+
+        ``sqrt(mu1)|00> + sqrt(mu2)|11>``.
+
+        Two local ``Rz-Ry-Rz`` variational layers contribute 12 angles.  A
+        12-observable affine readout contributes another 13 parameters, for a
+        total of 25 trainable parameters when ``n_layers=2``.  This matches the
+        controlled Schmidt-QPP family size reported in the manuscript while
+        keeping the state preparation non-trainable and geometry aligned.
+        """
+
+        observable_labels = (
+            "XI",
+            "YI",
+            "ZI",
+            "IX",
+            "IY",
+            "IZ",
+            "XX",
+            "YY",
+            "ZZ",
+            "XY+YX",
+            "XZ+ZX",
+            "YZ+ZY",
+        )
+
+        def __init__(self, n_layers: int = 2) -> None:
+            super().__init__()
+            self.n_layers = int(n_layers)
+            self.theta = nn.Parameter(0.05 * torch.randn(self.n_layers, 2, 3))
+            self.head = nn.Linear(len(self.observable_labels), 1)
+            i = torch.eye(2, dtype=torch.complex64)
+            x = torch.tensor([[0, 1], [1, 0]], dtype=torch.complex64)
+            y = torch.tensor([[0, -1j], [1j, 0]], dtype=torch.complex64)
+            z = torch.tensor([[1, 0], [0, -1]], dtype=torch.complex64)
+            operators = [
+                torch.kron(x, i),
+                torch.kron(y, i),
+                torch.kron(z, i),
+                torch.kron(i, x),
+                torch.kron(i, y),
+                torch.kron(i, z),
+                torch.kron(x, x),
+                torch.kron(y, y),
+                torch.kron(z, z),
+                0.5 * (torch.kron(x, y) + torch.kron(y, x)),
+                0.5 * (torch.kron(x, z) + torch.kron(z, x)),
+                0.5 * (torch.kron(y, z) + torch.kron(z, y)),
+            ]
+            self.register_buffer("observable_operators", torch.stack(operators))
+
+        def prepared_state(self, spectrum):
+            if spectrum.shape[-1] != 2:
+                raise ValueError(f"Schmidt-QPP expects [lambda1, lambda2], got {tuple(spectrum.shape)}")
+            values = torch.clamp(spectrum.to(dtype=torch.float32), min=0.0)
+            total = values.sum(dim=1, keepdim=True)
+            mu = values / torch.clamp(total, min=1e-8)
+            vacuum = total.squeeze(1) <= 1e-8
+            if torch.any(vacuum):
+                mu = mu.clone()
+                mu[vacuum, 0] = 1.0
+                mu[vacuum, 1] = 0.0
+            state = torch.zeros((len(values), 4), dtype=torch.complex64, device=values.device)
+            state[:, 0] = torch.sqrt(mu[:, 0]).to(torch.complex64)
+            state[:, 3] = torch.sqrt(mu[:, 1]).to(torch.complex64)
+            return state
+
+        def _trainable_layer(self, state, layer: int):
+            for qubit in range(2):
+                a, b, c = self.theta[layer, qubit]
+                state = apply_single_qubit_gate(state, Rz(a), qubit, 2)
+                state = apply_single_qubit_gate(state, Ry(b), qubit, 2)
+                state = apply_single_qubit_gate(state, Rz(c), qubit, 2)
+            return apply_cnot(state, 0, 1, 2)
+
+        def statevector(self, spectrum):
+            state = self.prepared_state(spectrum)
+            for layer in range(self.n_layers):
+                state = self._trainable_layer(state, layer)
+            return state
+
+        def observables(self, spectrum):
+            state = self.statevector(spectrum)
+            values = torch.einsum(
+                "bi,kij,bj->bk", state.conj(), self.observable_operators, state
+            ).real
+            return values.to(dtype=torch.float32)
+
+        def forward(self, spectrum):
+            return self.head(self.observables(spectrum)).squeeze(-1)
+
 else:
 
     def Ry(theta):  # type: ignore[no-redef]
@@ -256,11 +368,20 @@ else:
         require_torch()
 
 
+    def expectation_pauli2(state, pauli0: str, pauli1: str):  # type: ignore[no-redef]
+        require_torch()
+
+
     class DataReuploadingQNN2:  # type: ignore[no-redef]
         def __init__(self, *args, **kwargs) -> None:
             require_torch()
 
 
     class DataReuploadingQNN1:  # type: ignore[no-redef]
+        def __init__(self, *args, **kwargs) -> None:
+            require_torch()
+
+
+    class SchmidtQPPQNN2:  # type: ignore[no-redef]
         def __init__(self, *args, **kwargs) -> None:
             require_torch()

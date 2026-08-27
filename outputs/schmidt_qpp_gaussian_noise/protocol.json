@@ -1,0 +1,43 @@
+{
+  "data_path": "D:\\code\\quantum_corner_keypoint_detection\\quantum_corner_keypoint_detection\\data\\feature_dataset_extended.npz",
+  "training_seeds": [
+    17,
+    29,
+    41,
+    53,
+    67
+  ],
+  "noise_seeds": [
+    1001,
+    2003,
+    3001
+  ],
+  "gaussian_sigmas": [
+    0.0,
+    0.01,
+    0.02,
+    0.04,
+    0.06,
+    0.08,
+    0.1,
+    0.15
+  ],
+  "epochs": 60,
+  "patience": 10,
+  "batch_size": 128,
+  "learning_rate": 0.01,
+  "device": "cpu",
+  "train_samples": 4500,
+  "validation_samples": 1500,
+  "test_samples": 1500,
+  "positive_fraction_train": 0.2,
+  "schmidt_trainable_parameters": 25,
+  "tiny_mlp_trainable_parameters": 21,
+  "normalized_spectrum_tiny_mlp_trainable_parameters": 21,
+  "threshold_protocol": "best F1 on clean validation; frozen for all Gaussian-noisy tests",
+  "noise_application": "add N(0, sigma^2) to held-out images, clip to [0,1], then re-extract lambda1/lambda2",
+  "elapsed_seconds": 46.277345180511475,
+  "python_version": "3.12.13 | packaged by Anaconda, Inc. | (main, Jul  9 2026, 14:26:47) [MSC v.1942 64 bit (AMD64)]",
+  "numpy_version": "2.4.4",
+  "torch_version": "2.12.1+cu132"
+}

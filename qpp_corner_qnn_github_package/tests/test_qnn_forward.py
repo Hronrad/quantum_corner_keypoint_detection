@@ -74,3 +74,36 @@ def test_expectation_helpers_bound_outputs_on_normalized_states():
         assert torch.isfinite(value).all()
         assert torch.all(value <= 1.0 + 1e-5)
         assert torch.all(value >= -1.0 - 1e-5)
+
+
+def test_schmidt_qpp_preparation_parameter_count_and_backward():
+    import math
+
+    import torch
+
+    torch.manual_seed(3)
+    model = qnn_torch.SchmidtQPPQNN2(n_layers=2)
+    assert sum(param.numel() for param in model.parameters() if param.requires_grad) == 25
+
+    spectrum = torch.tensor([[3.0, 1.0], [1.0, 1.0], [0.0, 0.0]], dtype=torch.float32)
+    prepared = model.prepared_state(spectrum)
+    expected = torch.tensor(
+        [
+            [math.sqrt(0.75), 0.0, 0.0, 0.5],
+            [math.sqrt(0.5), 0.0, 0.0, math.sqrt(0.5)],
+            [1.0, 0.0, 0.0, 0.0],
+        ],
+        dtype=torch.complex64,
+    )
+    assert torch.allclose(prepared, expected, atol=1e-6)
+    assert torch.allclose(torch.sum(torch.abs(prepared) ** 2, dim=1), torch.ones(3), atol=1e-6)
+
+    logits = model(spectrum)
+    assert logits.shape == (3,)
+    observables = model.observables(spectrum)
+    assert observables.shape == (3, 12)
+    assert torch.isfinite(observables).all()
+
+    loss = torch.nn.BCEWithLogitsLoss()(logits, torch.tensor([0.0, 1.0, 0.0]))
+    loss.backward()
+    _assert_all_trainable_params_have_gradients(model)
