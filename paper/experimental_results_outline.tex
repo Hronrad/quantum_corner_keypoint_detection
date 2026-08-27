@@ -216,7 +216,7 @@ these models are evaluated on the same local candidates and image-level split.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{figures/final_comparison_results.png}
+    \includegraphics[width=\linewidth]{../outputs/summaries/final_comparison_results.png}
     \caption{Clean-test F1 comparison among the full-image classical detectors
     (Harris, FAST, and ORB), the shared-feature MLP, and the one- and two-qubit
     phase-coordinate QPP--QNNs. The classical detectors are evaluated by
@@ -392,7 +392,7 @@ different.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{figures/ltx_multiclass_comparison.png}
+    \includegraphics[width=\linewidth]{../missing_draft_figures/Figure_05_ltx_multiclass_comparison.png}
     \caption{Five-seed L/T/X classification under a group-disjoint split. Bars
     show mean Macro-F1 and Macro PR-AUC, and error bars show standard deviations
     where repeated-run estimates are available. TinyMLP achieves the highest
@@ -533,7 +533,7 @@ learner rather than by optimizing quantum-circuit parameters.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{figures/quantum_family_comparison.png}
+    \includegraphics[width=\linewidth]{../missing_draft_figures/Figure_06_quantum_family_comparison.png}
     \caption{F1 (left) and PR-AUC (right) for the controlled two-qubit family
     comparison.  The five trainable QNN/VQC models correspond to
     Table~\ref{tab:quantum-family}; the IQP and Schmidt fidelity kernels are
@@ -644,7 +644,7 @@ that cannot be summarized by a general claim of corruption invariance.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{quantum_corner_keypoint_detection/outputs/qpp/noise/qpp_noise_robustness.png}
+    \includegraphics[width=\linewidth]{../outputs/qpp/noise/qpp_noise_robustness.png}
     \caption{Fixed-threshold F1 of the phase-coordinate QPP--QNNs and compact
     classical controls under clean, Gaussian, blur, and salt-and-pepper test
     conditions.  All thresholds are selected before corrupted test evaluation.
@@ -673,7 +673,7 @@ Section~\ref{sec:gaussian-blur}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{quantum_corner_keypoint_detection/outputs/qnn_improvement/noise_5d8d/saltpepper_sweep_5d8d.png}
+    \includegraphics[width=\linewidth]{../outputs/qnn_improvement/noise_5d8d/saltpepper_sweep_5d8d.png}
     \caption{Additional matched-feature comparison of the earlier five- and
     eight-dimensional QNN/MLP families under increasing salt-and-pepper
     probability.  The left panel reports F1 at the frozen clean threshold and
@@ -826,7 +826,7 @@ diagnostic in Section~\ref{sec:representation-robustness}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.58\linewidth]{quantum_corner_keypoint_detection/outputs/qpp/noise_aware/qpp_noise_aware_results.png}
+    \includegraphics[width=0.58\linewidth]{../outputs/qpp/noise_aware/qpp_noise_aware_results.png}
     \caption{Recovery of the phase-coordinate two-qubit QPP--QNN under
     salt-and-pepper $p=0.03$.  This figure visualizes the first row of
     Table~\ref{tab:noise-aware-training}; the archived Schmidt branch is kept

@@ -22,3 +22,13 @@ outputs/*
 data/real_preview/
 !data/synthetic_motion_sequences.npz
 !data/synthetic_motion_finetune_dataset.npz
+
+# LaTeX build artifacts generated beside the paper source.
+paper/*.aux
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+paper/*.xdv
